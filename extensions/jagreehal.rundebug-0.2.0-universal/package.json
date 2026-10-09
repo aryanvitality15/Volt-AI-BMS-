@@ -1,0 +1,519 @@
+{
+	"name": "rundebug",
+	"displayName": "Run/Debug Configurations",
+	"description": "One-click run AND debug for any file, with JetBrains-style run configurations. No JSON wrangling.",
+	"version": "0.2.0",
+	"publisher": "jagreehal",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"packageManager": "pnpm@11.5.3",
+	"categories": [
+		"Debuggers",
+		"Programming Languages",
+		"Other"
+	],
+	"keywords": [
+		"run",
+		"debug",
+		"code runner",
+		"run configurations",
+		"jetbrains",
+		"webstorm"
+	],
+	"icon": "images/icon.png",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jagreehal/rundebug.git"
+	},
+	"main": "./dist/extension.js",
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "In untrusted workspaces, Run/Debug ignores workspace-defined run commands (executorMap, glob/extension maps, defaultLanguage, cwd), saved .vscode/rundebug.json command/args/cwd/env, and shebang lines, and refuses files whose path could break out of shell quoting. Only the built-in language runners apply."
+		}
+	},
+	"contributes": {
+		"commands": [
+			{
+				"command": "rundebug.runFile",
+				"title": "Run/Debug: Run File",
+				"icon": "$(play)"
+			},
+			{
+				"command": "rundebug.debugFile",
+				"title": "Run/Debug: Debug File",
+				"icon": "$(debug-alt)"
+			},
+			{
+				"command": "rundebug.runSelection",
+				"title": "Run/Debug: Run Selection"
+			},
+			{
+				"command": "rundebug.stop",
+				"title": "Run/Debug: Stop Running",
+				"icon": "$(debug-stop)"
+			},
+			{
+				"command": "rundebug.watchFile",
+				"title": "Run/Debug: Watch & Re-run File",
+				"icon": "$(eye)"
+			},
+			{
+				"command": "rundebug.stopAllWatches",
+				"title": "Run/Debug: Stop All Watches"
+			},
+			{
+				"command": "rundebug.stopWatch",
+				"title": "Run/Debug: Stop Watching File…"
+			},
+			{
+				"command": "rundebug.newConfig",
+				"title": "Run/Debug: New Run Configuration",
+				"icon": "$(add)"
+			},
+			{
+				"command": "rundebug.runConfig",
+				"title": "Run Configuration",
+				"icon": "$(play)"
+			},
+			{
+				"command": "rundebug.debugConfig",
+				"title": "Debug Configuration",
+				"icon": "$(debug-alt)"
+			},
+			{
+				"command": "rundebug.editConfig",
+				"title": "Edit Configuration",
+				"icon": "$(edit)"
+			},
+			{
+				"command": "rundebug.deleteConfig",
+				"title": "Delete Configuration",
+				"icon": "$(trash)"
+			},
+			{
+				"command": "rundebug.saveFromCurrentFile",
+				"title": "Run/Debug: Save Current File as Run Configuration"
+			},
+			{
+				"command": "rundebug.runFileTests",
+				"title": "Run/Debug: Run File Tests",
+				"icon": "$(beaker)"
+			},
+			{
+				"command": "rundebug.runTest",
+				"title": "Run/Debug: Run Test at Cursor",
+				"icon": "$(play)"
+			},
+			{
+				"command": "rundebug.debugTest",
+				"title": "Run/Debug: Debug Test at Cursor",
+				"icon": "$(debug-alt)"
+			},
+			{
+				"command": "rundebug.watchTests",
+				"title": "Run/Debug: Watch & Re-run Tests",
+				"icon": "$(eye-watch)"
+			}
+		],
+		"menus": {
+			"editor/title/run": [
+				{
+					"command": "rundebug.runFile",
+					"group": "navigation@1",
+					"when": "resourceScheme == file && (rundebug.hasRunner || rundebug.showAll)"
+				},
+				{
+					"command": "rundebug.debugFile",
+					"group": "navigation@2",
+					"when": "resourceScheme == file && (rundebug.hasRunner || rundebug.showAll)"
+				},
+				{
+					"command": "rundebug.watchFile",
+					"group": "navigation@3",
+					"when": "resourceScheme == file && (rundebug.hasRunner || rundebug.showAll)"
+				},
+				{
+					"command": "rundebug.runFileTests",
+					"group": "navigation@4",
+					"when": "resourceScheme == file && rundebug.isTestFile"
+				}
+			],
+			"editor/context": [
+				{
+					"command": "rundebug.runFile",
+					"group": "rundebug@1",
+					"when": "resourceScheme == file && (rundebug.hasRunner || rundebug.showAll)"
+				},
+				{
+					"command": "rundebug.runSelection",
+					"group": "rundebug@2",
+					"when": "editorHasSelection"
+				},
+				{
+					"command": "rundebug.debugFile",
+					"group": "rundebug@3",
+					"when": "resourceScheme == file && (rundebug.hasRunner || rundebug.showAll)"
+				},
+				{
+					"command": "rundebug.saveFromCurrentFile",
+					"group": "rundebug@4",
+					"when": "resourceScheme == file"
+				},
+				{
+					"command": "rundebug.runTest",
+					"group": "rundebugTest@1",
+					"when": "resourceScheme == file && rundebug.isTestFile"
+				},
+				{
+					"command": "rundebug.debugTest",
+					"group": "rundebugTest@2",
+					"when": "resourceScheme == file && rundebug.isTestFile"
+				}
+			],
+			"view/title": [
+				{
+					"command": "rundebug.newConfig",
+					"when": "view == rundebugConfigs",
+					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "rundebug.runConfig",
+					"when": "view == rundebugConfigs && viewItem == rundebugConfig",
+					"group": "inline@1"
+				},
+				{
+					"command": "rundebug.debugConfig",
+					"when": "view == rundebugConfigs && viewItem == rundebugConfig",
+					"group": "inline@2"
+				},
+				{
+					"command": "rundebug.editConfig",
+					"when": "view == rundebugConfigs && viewItem == rundebugConfig",
+					"group": "context@1"
+				},
+				{
+					"command": "rundebug.deleteConfig",
+					"when": "view == rundebugConfigs && viewItem == rundebugConfig",
+					"group": "context@2"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "rundebug.runFile",
+				"key": "ctrl+alt+n",
+				"mac": "ctrl+alt+n",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "rundebug.debugFile",
+				"key": "ctrl+alt+d",
+				"mac": "ctrl+alt+d",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "rundebug.stop",
+				"key": "ctrl+alt+m",
+				"mac": "ctrl+alt+m"
+			},
+			{
+				"command": "rundebug.watchFile",
+				"key": "ctrl+alt+w",
+				"mac": "ctrl+alt+w",
+				"when": "editorTextFocus"
+			},
+			{
+				"command": "rundebug.runTest",
+				"key": "ctrl+alt+t",
+				"mac": "ctrl+alt+t",
+				"when": "editorTextFocus"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "rundebug",
+					"title": "Run/Debug Configurations",
+					"icon": "images/activitybar.svg"
+				}
+			]
+		},
+		"views": {
+			"rundebug": [
+				{
+					"id": "rundebugConfigs",
+					"name": "Run Configurations",
+					"icon": "$(rocket)"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+				"view": "rundebugConfigs",
+				"contents": "No run configurations yet.\n\nCreate one with a GUI — no JSON editing.\n[New Run Configuration](command:rundebug.newConfig)\n\nOr just press ctrl+alt+n to run the current file, or ctrl+alt+d to debug it."
+			}
+		],
+		"configuration": {
+			"title": "Run/Debug Configurations",
+			"properties": {
+				"rundebug.runInTerminal": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run code in the integrated terminal. When off, output is shown in a read-only output channel."
+				},
+				"rundebug.saveAllOnRun": {
+					"type": "boolean",
+					"default": true,
+					"description": "Save the active file (and dirty files) before running."
+				},
+				"rundebug.clearPreviousOutput": {
+					"type": "boolean",
+					"default": false,
+					"description": "Clear the terminal/output before each run."
+				},
+				"rundebug.respectShebang": {
+					"type": "boolean",
+					"default": true,
+					"description": "Honour a #! shebang line when present instead of the language default."
+				},
+				"rundebug.executorMapByGlob": {
+					"type": "object",
+					"default": {
+						"pom.xml": "cd {fileDirname} && mvn clean package"
+					},
+					"description": "Override run commands by filename glob. Example: { \"pom.xml\": \"cd {fileDirname} && mvn clean package\" }.",
+					"additionalProperties": {
+						"type": "string"
+					}
+				},
+				"rundebug.runtime.javascript": {
+					"type": "string",
+					"default": "node",
+					"enum": [
+						"node",
+						"bun",
+						"deno"
+					],
+					"enumDescriptions": [
+						"node <file>",
+						"bun <file>",
+						"deno run -A <file>"
+					],
+					"description": "Runtime used to run/debug JavaScript files."
+				},
+				"rundebug.runtime.typescript": {
+					"type": "string",
+					"default": "tsx",
+					"enum": [
+						"tsx",
+						"bun",
+						"ts-node",
+						"deno",
+						"node"
+					],
+					"enumDescriptions": [
+						"npx tsx <file>",
+						"bun <file>",
+						"npx ts-node <file>",
+						"deno run -A <file>",
+						"node <file> (native type stripping, Node 22+)"
+					],
+					"description": "Runtime used to run/debug TypeScript (.ts/.tsx) files."
+				},
+				"rundebug.runtime.python": {
+					"type": "string",
+					"default": "python3",
+					"enum": [
+						"python3",
+						"python",
+						"uv"
+					],
+					"enumDescriptions": [
+						"python3 -u <file>",
+						"python -u <file>",
+						"uv run <file>"
+					],
+					"description": "Runtime used to run/debug Python files."
+				},
+				"rundebug.node.typeStripping": {
+					"type": "string",
+					"default": "transform",
+					"enum": [
+						"transform",
+						"strip",
+						"none"
+					],
+					"enumDescriptions": [
+						"--experimental-transform-types (full TS, incl. enums & namespaces)",
+						"--experimental-strip-types (erasable syntax only)",
+						"No flag (plain node)"
+					],
+					"markdownDescription": "Flag used when the TypeScript runtime is set to **node** (native type stripping). Requires Node 22.6+."
+				},
+				"rundebug.executorMap": {
+					"type": "object",
+					"default": {},
+					"description": "Override or add run commands per language id. Example: { \"javascript\": \"bun {file}\" }. Supports placeholders {file} {fileBasename} {fileBasenameNoExt} {fileDirname} {workspaceFolder} {relativeFile}.",
+					"additionalProperties": {
+						"type": "string"
+					}
+				},
+				"rundebug.executorMapByFileExtension": {
+					"type": "object",
+					"default": {
+						".kt": "cd {fileDirname} && kotlinc {fileBasename} -include-runtime -d {fileBasenameNoExt}.jar && java -jar {fileBasenameNoExt}.jar",
+						".csproj": "dotnet run --project {file}",
+						".fsproj": "dotnet run --project {file}"
+					},
+					"description": "Override run commands by file extension. Example: { \".kt\": \"kotlinc -script {file}\" }.",
+					"additionalProperties": {
+						"type": "string"
+					}
+				},
+				"rundebug.languageIdToFileExtensionMap": {
+					"type": "object",
+					"default": {
+						"bat": ".bat",
+						"powershell": ".ps1",
+						"typescript": ".ts",
+						"typescriptreact": ".tsx"
+					},
+					"description": "Map VS Code language ids to extensions when a file extension is missing or ambiguous.",
+					"additionalProperties": {
+						"type": "string"
+					}
+				},
+				"rundebug.defaultLanguage": {
+					"type": "string",
+					"default": "",
+					"description": "Fallback language id to use when no runner or override matches the file."
+				},
+				"rundebug.cwd": {
+					"type": "string",
+					"default": "",
+					"description": "Default working directory for run commands. Absolute paths are used as-is; relative paths resolve from the workspace folder."
+				},
+				"rundebug.fileDirectoryAsCwd": {
+					"type": "boolean",
+					"default": true,
+					"description": "When no per-run cwd or global cwd is set, use the file's directory as the working directory; otherwise use the workspace folder."
+				},
+				"rundebug.python.useSelectedInterpreter": {
+					"type": "boolean",
+					"default": true,
+					"description": "Run Python files with the interpreter selected by the Python extension (its virtual environment / conda env), instead of a bare python3. Debugging already uses it."
+				},
+				"rundebug.compiledOutputDirectory": {
+					"type": "string",
+					"default": "",
+					"description": "Directory for binaries built from compiled languages (C, C++, Rust, Go, etc.). Absolute paths are used as-is; relative paths resolve from the workspace folder. Empty means alongside the source file."
+				},
+				"rundebug.preferLaunchConfig": {
+					"type": "boolean",
+					"default": false,
+					"description": "When debugging, if a launch.json configuration's program resolves to the current file, start that configuration instead of the generated one."
+				},
+				"rundebug.showRunActionsForUnsupportedFiles": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show the Run/Debug editor-title and context-menu actions for every file. When off, they appear only for files with a known runner or override."
+				},
+				"rundebug.testFramework": {
+					"type": "string",
+					"default": "auto",
+					"enum": [
+						"auto",
+						"vitest",
+						"jest",
+						"mocha",
+						"node:test",
+						"pytest",
+						"go",
+						"cargo"
+					],
+					"enumDescriptions": [
+						"Detect from the project (dependencies for JS/TS, language otherwise)",
+						"Vitest",
+						"Jest",
+						"Mocha",
+						"Node's built-in node:test runner",
+						"pytest",
+						"go test",
+						"cargo test"
+					],
+					"description": "Test framework used by the Test Explorer, CodeLenses and test commands. 'auto' detects per project."
+				},
+				"rundebug.testCodeLens": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show Run/Debug CodeLenses above tests and at the top of test files."
+				},
+				"rundebug.testFileGlobs": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [
+						"**/*.{test,spec}.{js,jsx,ts,tsx,cjs,mjs,cts,mts}",
+						"**/*_test.go",
+						"**/test_*.py",
+						"**/*_test.py"
+					],
+					"description": "Globs used by the Test Explorer to discover test files. node_modules is always excluded."
+				},
+				"rundebug.coverageFile": {
+					"type": "string",
+					"default": "coverage/lcov.info",
+					"description": "Workspace-relative path to the lcov file produced by a coverage run, loaded into the editor's coverage view."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "pnpm package",
+		"check": "pnpm lint && pnpm typecheck && pnpm test:unit",
+		"compile": "node esbuild.mjs",
+		"watch": "node esbuild.mjs --watch",
+		"package": "pnpm typecheck && node esbuild.mjs --production",
+		"typecheck": "tsc --noEmit",
+		"lint": "eslint src",
+		"compile-tests": "tsc -p ./",
+		"pretest": "pnpm check",
+		"test": "vscode-test",
+		"test:unit": "pnpm compile-tests && mocha out/test/registry.test.js out/test/selectCommand.test.js out/test/frameworks.test.js out/test/discovery.test.js out/test/lcov.test.js",
+		"vsix": "vsce package --no-dependencies",
+		"publish:vsce": "vsce publish --no-dependencies",
+		"publish:ovsx": "ovsx publish --no-dependencies"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.0",
+		"@types/node": "^22.0.0",
+		"@types/vscode": "^1.90.0",
+		"@typescript-eslint/eslint-plugin": "^8.0.0",
+		"@typescript-eslint/parser": "^8.0.0",
+		"@vscode/test-cli": "^0.0.10",
+		"@vscode/test-electron": "^2.4.0",
+		"@vscode/vsce": "^3.0.0",
+		"esbuild": "^0.23.0",
+		"eslint": "^9.0.0",
+		"mocha": "^10.7.0",
+		"ovsx": "^0.10.0",
+		"typescript": "^5.5.0"
+	},
+	"dependencies": {
+		"minimatch": "^10.2.5"
+	},
+	"__metadata": {
+		"installedTimestamp": 1789985680558,
+		"targetPlatform": "universal",
+		"size": 114974
+	}
+}

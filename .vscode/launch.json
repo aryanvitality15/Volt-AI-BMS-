@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "FastAPI Backend",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "app:app",
+        "--reload",
+        "--port",
+        "8000"
+      ],
+      "cwd": "${workspaceFolder}/ev-battery-intelligence/backend",
+      "jinja": true,
+      "justMyCode": true
+    },
+    {
+      "name": "Train Models",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/ev-battery-intelligence/backend/train_models.py",
+      "cwd": "${workspaceFolder}/ev-battery-intelligence/backend",
+      "justMyCode": true
+    }
+  ]
+}

@@ -1,0 +1,292 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>roslyn-language-server</name>
+    </assembly>
+    <members>
+        <member name="T:Microsoft.CodeAnalysis.LanguageServer.Client.ChildServerHost">
+            <summary>
+            Single-server (non-daemon) mode: launches the bundled language server as a dedicated child process on the same
+            transport the editor asked the thin client to use, and always forwards the server's stdio to/from the thin
+            client's own. The transport only changes which argument the server is launched with:
+            <list type="bullet">
+            <item>Named pipe (<c>--pipe &lt;name&gt;</c>): the server connects to the editor's pipe directly for LSP, so the
+            forwarded stdio carries only the server's diagnostics.</item>
+            <item>Stdio (<c>--stdio</c>): the server uses stdio for LSP, so the forwarded stdin/stdout carry the LSP
+            requests/responses (and stderr still carries diagnostics).</item>
+            </list>
+            The editor's <c>--clientProcessId</c> is also forwarded so the dedicated server independently monitors the editor
+            and exits on its own when the editor goes away (the thin client monitors it too). In both cases the server process
+            exiting is the authoritative end-of-session signal.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.ChildServerHost.ForwardEditorInputAsync(System.Diagnostics.Process,System.Threading.CancellationToken)">
+            <summary>
+            Forwards the editor's input (our stdin) to the server's stdin, then closes the server's stdin once ours ends
+            so a stdio-mode server sees EOF and shuts down. A pipe-mode server ignores its stdin, so this is harmless there.
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonBootstrap">
+            <summary>
+            The short-lived "bootstrap" stage of the shared daemon's double launch, run as a second copy of this thin client.
+            <para>
+            The thin client cannot launch the daemon directly: the daemon would be a descendant of the thin client and so be
+            torn down when an editor kills the thin client's process tree (process-tree teardowns walk parent/child links,
+            which neither Windows job-object breakaway nor Unix <c>setsid</c> change). Instead, when a client needs a daemon it
+            launches this bootstrap - a second, short-lived copy of the thin client (see <see cref="T:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClient"/>) - which
+            launches the real <c>Microsoft.CodeAnalysis.LanguageServer --daemon</c> and then exits, orphaning the daemon out of
+            the editor's process tree. Keeping all of this process-launch plumbing in the thin client lets the language server
+            stay a plain LSP server that only understands <c>--daemon</c>.
+            </para>
+            </summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonBootstrap.BootstrapArgument">
+            <summary>Marker the thin client passes to request this bootstrap stage; replaced by <c>--daemon</c> for the server.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonBootstrap.ReadyTimeout">
+            <summary>
+            Upper bound on how long the bootstrap waits for the daemon to become ready before terminating it. The
+            bootstrap normally exits as soon as the daemon signals readiness (within a few seconds); this only caps a
+            pathologically slow or hung startup so the bootstrap process itself never lingers indefinitely.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonBootstrap.IsBootstrapRequested(System.String[])">
+            <summary>Whether <paramref name="args"/> request the daemon bootstrap stage.</summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonBootstrap.RunAsync(System.String[])">
+            <summary>
+            Launches the real daemon detached from this process tree, forwards its startup diagnostics until it is ready
+            (or fails), and returns an exit code. Returning causes this bootstrap to exit, which orphans the running daemon.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonBootstrap.WaitForReadyOrExitAsync(System.Diagnostics.Process,System.String)">
+            <summary>
+            Polls until the daemon signals readiness by acquiring its server mutex, exits, or the ready timeout elapses.
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClientMutex">
+            <summary>
+            The "client" mutex held by a connecting thin client to serialize the check-server-then-launch sequence so
+            two clients can't race to start two daemons.
+            <para>
+            <see cref="M:System.Threading.WaitHandle.WaitOne(System.TimeSpan)"/> / <see cref="M:System.Threading.Mutex.ReleaseMutex"/> must occur on the same thread, so
+            callers must keep the acquire/release on a single thread (i.e. avoid <c>await</c> between
+            <see cref="M:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClientMutex.TryAcquire(System.String,System.TimeSpan,Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClientMutex@)"/> and <see cref="M:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClientMutex.Dispose"/>).
+            </para>
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClientMutex.TryAcquire(System.String,System.TimeSpan,Microsoft.CodeAnalysis.LanguageServer.Client.DaemonClientMutex@)">
+            <summary>
+            Attempts to acquire the mutex within the given timeout. The returned instance owns the mutex and must be
+            disposed on the same thread.
+            </summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.ExitCodes.Success">
+            <summary>The thin client and its language server session shut down cleanly.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.ExitCodes.ServerConnectionLost">
+            <summary>The server or daemon connection closed before the editor connection.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.ExitCodes.EditorConnectionLost">
+            <summary>The editor connection closed, or the monitored editor process exited.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.ExitCodes.ServerLaunchOrConnectFailure">
+            <summary>The thin client failed to resolve, launch, or connect to the server or daemon.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.ExitCodes.BadArguments">
+            <summary>The thin client received invalid command-line arguments.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.ExitCodes.DaemonReadyTimeout">
+            <summary>The bootstrap launched a daemon, but it did not become ready before the startup timeout.</summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Client.LspRelay.s_secondCloseGracePeriod">
+            <summary>
+            Grace period to wait for the second side to close after the first does, so a clean shutdown (which
+            closes both) can be distinguished from a one-sided disconnect (a crash).
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.ProcessUtilities.ForwardStreamAsync(System.IO.Stream,System.IO.Stream,System.Threading.CancellationToken)">
+            <summary>
+            Copies <paramref name="source"/> to <paramref name="destination"/> byte for byte, flushing after every read so
+            forwarded data (LSP messages in stdio transport, or diagnostics) is delivered promptly. Runs on a background
+            thread so a blocking console read never stalls the caller. Returns when the source ends, either stream faults,
+            or forwarding is cancelled.
+            </summary>
+        </member>
+        <member name="P:Microsoft.CodeAnalysis.LanguageServer.Client.ServerExecutable.FileName">
+            <summary>The full path to the executable apphost to launch.</summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.ServerExecutable.ResolveSelf">
+            <summary>
+            Resolves this thin client's own apphost (next to it), used to re-launch ourselves as the short-lived daemon
+            bootstrap. Like the bundled server, the thin client is always published with an apphost (only .NET source-build
+            omits it, which these projects are not part of), so we launch it directly and point the relaunched apphost at
+            the runtime hosting us, exactly as for the bundled server.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.ServerExecutable.Start(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>Starts this executable with all standard streams redirected.</summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Client.ServerExecutable.StartWithStandardHandleInheritanceSuppressed(System.Collections.Generic.IReadOnlyList{System.String})">
+            <summary>
+            Starts this executable with all standard streams redirected while preventing this process's standard handles
+            from being inherited. Used for both stages of the daemon launch so the daemon cannot retain the editor's LSP
+            stdio pipes.
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName">
+            <summary>
+            Computes the named-pipe and mutex names used to discover and connect to a shared language
+            server daemon. Only identity/version-compatible clients connect to a given daemon.
+            <para>
+            This file is source-shared (linked) into both the thin client and the language server, so
+            they must remain dependency-light and AOT/trim-safe (no reflection).
+            </para>
+            </summary>
+        </member>
+        <member name="P:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName.MutexOptions">
+            <summary>
+            Restricts daemon mutex access to the current user while keeping the mutex visible across sessions.
+            </summary>
+        </member>
+        <member name="F:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName.PipeNameOverrideEnvironmentVariable">
+            <summary>
+            Optional environment variable that, when set, is used verbatim as the daemon pipe name instead of the
+            value derived from the tool identifier. This lets independent instances run isolated daemons that don't
+            share state (primarily so end-to-end tests can scope a daemon to a single test, but also usable for
+            advanced scenarios that deliberately want a separate daemon). Normal clients leave it unset so that only
+            version-compatible clients share a daemon.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName.GetPipeName(System.String,System.String)">
+            <summary>
+            Computes the pipe name for the current user, scoped by <paramref name="toolIdentifier"/> and
+            <paramref name="telemetryLevel"/>.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName.GetPipeName(System.String,System.Boolean,System.String,System.String)">
+            <summary>
+            Computes the pipe name from the user identity and a tool identifier. The
+            <paramref name="toolIdentifier"/> ensures only compatible clients connect to a compatible
+            server; we use the full path to the server executable (in a versioned location).
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName.GetServerMutexName(System.String)">
+            <summary>
+            Name of the mutex held by the daemon for its entire lifetime; its existence means a daemon
+            is running for this pipe.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonPipeName.GetClientMutexName(System.String)">
+            <summary>
+            Name of the mutex briefly acquired by a connecting client to serialize the
+            check-server-then-launch sequence so two clients can't race to start two daemons.
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonServerMutex">
+            <summary>
+            The "server" mutex that signals a language server daemon is running for a given pipe. The daemon holds it
+            open for its lifetime; clients (and tests) check its existence to decide whether a daemon already exists.
+            <para>
+            The mutex is held unlocked (<c>initiallyOwned: false</c>): clients only check existence via
+            <see cref="M:System.Threading.Mutex.TryOpenExisting(System.String,System.Threading.Mutex@)"/>, which is satisfied by an open handle. Holding it
+            unlocked also avoids <see cref="T:System.Threading.Mutex"/>'s thread-affinity requirement on release, which is incompatible
+            with the daemon's async accept loop resuming on arbitrary threads (disposing the handle is thread-safe).
+            </para>
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonServerMutex.TryAcquire(System.String,System.Threading.Mutex@)">
+            <summary>
+            Attempts to become the daemon for <paramref name="pipeName"/> by opening the server mutex. Returns
+            <see langword="true"/> and the held mutex if this process is the first; <see langword="false"/> if a
+            daemon already owns it. The returned mutex must be disposed when the daemon shuts down.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.LanguageServer.Daemon.DaemonServerMutex.IsRunning(System.String)">
+            <summary>
+            Returns whether a daemon currently holds the server mutex for <paramref name="pipeName"/>.
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.NamedPipeUtil">
+            <summary>
+            The compiler needs to take advantage of features on named pipes which require target framework
+            specific APIs. This class is meant to provide a simple, universal interface on top of the 
+            multi-targeting code that is needed here.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.NamedPipeUtil.CreateClient(System.String,System.String,System.IO.Pipes.PipeDirection,System.IO.Pipes.PipeOptions)">
+            <summary>
+            Create a client for the current user only.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.NamedPipeUtil.CheckClientElevationMatches(System.IO.Pipes.NamedPipeServerStream)">
+            <summary>
+            Does the client of "pipeStream" have the same identity and elevation as we do? The <see cref="M:Microsoft.CodeAnalysis.NamedPipeUtil.CreateClient(System.String,System.String,System.IO.Pipes.PipeDirection,System.IO.Pipes.PipeOptions)"/> and 
+            <see cref="M:Microsoft.CodeAnalysis.NamedPipeUtil.CreateServer(System.String,System.Nullable{System.IO.Pipes.PipeDirection})" /> methods will already guarantee that the identity of the client and server are the 
+            same. This method is attempting to validate that the elevation level is the same between both ends of the 
+            named pipe (want to disallow low priv session sending compilation requests to an elevated one).
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.NamedPipeUtil.CreateServer(System.String,System.Nullable{System.IO.Pipes.PipeDirection})">
+            <summary>
+            Create a server for the current user only
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.RuntimeHostInfo">
+            <summary>
+            This type provides information about the runtime which is hosting application. It must be included in a concrete 
+            target framework to be used.
+            </summary>
+        </member>
+        <member name="P:Microsoft.CodeAnalysis.RuntimeHostInfo.ShouldDisableTieredCompilation">
+            <summary>
+            Disable JIT tiered compilation on .NET Framework (i.e., keep it enabled on 'dotnet build' but not 'msbuild' which would slow down VS startup perf).
+            The caller should also check that the environment variable is not already set to avoid overriding user preferences.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.RuntimeHostInfo.GetToolDotNetRoot(Microsoft.CodeAnalysis.IBuildEnvironment,System.Action{System.String,System.Object[]})">
+            <summary>
+            The <c>DOTNET_ROOT</c> that should be used when launching executable tools. If the return
+            is non-null then it will be a fully qualified path.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.RuntimeHostInfo.GetDotNetHostPath(Microsoft.CodeAnalysis.IBuildEnvironment)">
+            <summary>
+            Get the path to the dotnet host executable. The path returned is not guaranteed to be fully qualified.
+            </summary>
+        </member>
+        <member name="T:Microsoft.CodeAnalysis.Shared.Utilities.StandardHandleInheritance">
+            <summary>
+            Controls whether this process's standard input, output, and error handles are inheritable by child processes.
+            <para>
+            On Windows a <see cref="T:System.Diagnostics.Process"/> started with any redirected stream is created with
+            <c>CreateProcess(bInheritHandles: true)</c>, which leaks <em>all</em> of this process's inheritable handles - in
+            particular its own standard handles - to the child. Marking the standard handles non-inheritable prevents the child
+            from receiving them, while the freshly created redirection pipes (which the runtime sets up separately) are
+            unaffected. A no-op off Windows, where redirected children don't leak the parent's standard handles.
+            </para>
+            TODO - Switch to ProcessStartInfo.InheritedHandles when we upgrade to .NET 11 which allows us to configure handle inheritance directly.
+            </summary>
+        </member>
+        <member name="M:Microsoft.CodeAnalysis.Shared.Utilities.StandardHandleInheritance.SetStandardHandlesInheritable(System.Boolean)">
+            <summary>
+            On Windows, sets whether this process's standard input, output, and error handles are inheritable by child
+            processes. A no-op off Windows.
+            </summary>
+        </member>
+        <member name="T:Roslyn.Utilities.PlatformInformation">
+            <summary>
+            This class provides simple properties for determining whether the current platform is Windows or Unix-based.
+            We intentionally do not use System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(...) because
+            it incorrectly reports 'true' for 'Windows' in desktop builds running on Unix-based platforms via Mono.
+            </summary>
+        </member>
+        <member name="P:Roslyn.Utilities.PlatformInformation.IsUsingMonoRuntime">
+            <summary>
+            Are we running on .NET 5 or later using the Mono runtime?
+            Will also return true when running on Mono itself; if necessary
+            we can use IsRunningOnMono to distinguish.
+            </summary>
+        </member>
+    </members>
+</doc>
