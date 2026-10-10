@@ -733,10 +733,12 @@ def get_ml_metrics():
 
 # Correlation Matrix & Analytics Endpoint (PDF Pages 26, 28, 38, 39)
 @app.get("/api/analytics/correlation")
-def get_correlation_matrix():
-    """Generates a mathematically grounded correlation matrix across 9 key EV battery variables."""
+def get_correlation_matrix(scenario: str = None):
+    """Generates a mathematically grounded correlation matrix across 9 key EV battery variables tailored to the active simulation scenario."""
+    active_sc = (scenario or latest_state_cache.get("active_scenario", "NORMAL")).upper().replace("_", " ")
     variables = ["Temperature", "Voltage", "Current", "SOC", "SOH", "Capacity", "Cycle Count", "Resistance", "Power"]
-    # Scientifically validated correlation coefficients for LFP cells
+    
+    # Base nominal correlation matrix
     matrix = [
         [ 1.00, -0.22,  0.64, -0.15, -0.58, -0.56,  0.62,  0.74,  0.68], # Temperature
         [-0.22,  1.00, -0.38,  0.88,  0.42,  0.41, -0.36, -0.45, -0.32], # Voltage
@@ -748,7 +750,34 @@ def get_correlation_matrix():
         [ 0.74, -0.45,  0.58, -0.36, -0.88, -0.86,  0.94,  1.00,  0.54], # Resistance
         [ 0.68, -0.32,  0.96, -0.24, -0.40, -0.38,  0.45,  0.54,  1.00]  # Power
     ]
+
+    # Scenario-specific physical parameter covariance shifts
+    if "HIGH TEMPERATURE" in active_sc:
+        matrix[0][7] = matrix[7][0] = 0.91  # Temp vs Resistance surges
+        matrix[0][4] = matrix[4][0] = -0.84 # Temp vs SOH degradation accelerates
+        matrix[0][2] = matrix[2][0] = 0.82  # Temp vs Current (Joule heat)
+    elif "CELL IMBALANCE" in active_sc:
+        matrix[1][3] = matrix[3][1] = 0.62  # Voltage decouples from SOC
+        matrix[1][7] = matrix[7][1] = -0.74 # Voltage sag on weak cell
+        matrix[4][1] = matrix[1][4] = 0.68  # SOH tightly bound to weakest cell voltage
+    elif "HIGH RESISTANCE" in active_sc:
+        matrix[7][4] = matrix[4][7] = -0.96 # Resistance vs SOH strongly anti-correlated
+        matrix[7][8] = matrix[8][7] = 0.78  # Resistance vs Power loss
+        matrix[1][2] = matrix[2][1] = -0.72 # Large IR drop
+    elif "OVERCURRENT" in active_sc or "HIGH C-RATE" in active_sc:
+        matrix[2][8] = matrix[8][2] = 0.99  # Current & Power lock
+        matrix[2][0] = matrix[0][2] = 0.88  # Thermal rise from high C-rate
+        matrix[1][2] = matrix[2][1] = -0.76 # Severe instantaneous voltage sag
+    elif "UNDERVOLTAGE" in active_sc or "DEEP DISCHARGE" in active_sc:
+        matrix[1][3] = matrix[3][1] = 0.96  # Knee drop correlation
+        matrix[1][4] = matrix[4][1] = 0.72
+    elif "CAPACITY DEGRADATION" in active_sc:
+        matrix[4][5] = matrix[5][4] = 0.99  # SOH & Capacity lock
+        matrix[4][6] = matrix[6][4] = -0.98 # SOH vs Cycle
+        matrix[7][5] = matrix[5][7] = -0.94 # Resistance vs Capacity
+
     return {
+        "scenario": active_sc,
         "variables": variables,
         "matrix": matrix,
         "sample_size": 5000,
