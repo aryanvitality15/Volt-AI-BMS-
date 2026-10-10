@@ -373,7 +373,7 @@ export default function App() {
         />
 
         {/* Dynamic Viewport Router */}
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 relative z-10">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
           <AnimatePresence mode="wait">
             {activeTab === 'dashboard' && (
               <DashboardView

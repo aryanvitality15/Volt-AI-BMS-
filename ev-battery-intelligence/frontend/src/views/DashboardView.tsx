@@ -141,7 +141,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-7 glass-panel rounded-2xl p-7 border border-slate-700/60 relative overflow-hidden shadow-2xl flex flex-col justify-between"
+          className="lg:col-span-7 glass-panel rounded-2xl p-4 sm:p-6 lg:p-7 border border-slate-700/60 relative overflow-hidden shadow-2xl flex flex-col justify-between"
         >
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -171,11 +171,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Main SOH Dial & Prognostics Layout */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center relative z-10 my-auto py-2">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 sm:gap-6 items-center relative z-10 my-auto py-2">
             
             {/* Left: Precision 240° Radial Gauge */}
             <div className="sm:col-span-6 flex flex-col items-center justify-center">
-              <div className="relative w-56 h-56 flex items-center justify-center">
+              <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center">
                 
                 {/* SVG Gauge */}
                 <svg className="w-full h-full transform rotate-[150deg]" viewBox="0 0 200 200">
@@ -312,7 +312,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-5 glass-panel rounded-2xl p-7 border border-slate-700/60 flex flex-col justify-between shadow-2xl relative overflow-hidden"
+          className="lg:col-span-5 glass-panel rounded-2xl p-4 sm:p-6 lg:p-7 border border-slate-700/60 flex flex-col justify-between shadow-2xl relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 

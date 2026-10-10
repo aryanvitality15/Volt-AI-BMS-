@@ -820,7 +820,7 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
   const topoInfo = TOPOLOGY_PRESETS[topology] || TOPOLOGY_PRESETS['8S1P'];
 
   return (
-    <div className="w-full h-[480px] rounded-2xl overflow-hidden glass-panel relative border border-slate-700/50 shadow-2xl">
+    <div className="w-full h-[360px] sm:h-[460px] lg:h-[520px] rounded-2xl overflow-hidden glass-panel relative border border-slate-700/50 shadow-2xl">
       {/* 3D Canvas Viewport */}
       <Canvas
         camera={{ position: [0, 2.5, 6.0], fov: 45 }}
@@ -908,18 +908,18 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
       </Canvas>
 
       {/* Top HUD Controls Overlay */}
-      <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-auto z-10">
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 right-2 sm:right-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pointer-events-auto z-10">
         {/* Topology Selector & Real-Time Specifications */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/25 shadow-xl">
-          <span className="text-[9px] font-orbitron font-bold text-emerald-400 px-2 py-0.5 flex items-center gap-1">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-emerald-500/25 shadow-xl overflow-x-auto max-w-full custom-scrollbar">
+          <span className="text-[8.5px] sm:text-[9px] font-orbitron font-bold text-emerald-400 px-1.5 sm:px-2 py-0.5 flex items-center gap-1 flex-shrink-0">
             <Cpu className="w-3 h-3 text-emerald-400" />
-            TOPOLOGY:
+            <span className="hidden xs:inline">TOPOLOGY:</span>
           </span>
           {(['8S1P', '16S1P', '16S2P', '24S2P', '32S4P'] as PackTopology[]).map((t) => (
             <button
               key={t}
               onClick={() => handleTopologySelect(t)}
-              className={`px-2.5 py-1 text-[9px] font-orbitron font-bold rounded-lg transition-all ${
+              className={`px-2 sm:px-2.5 py-1 text-[8.5px] sm:text-[9px] font-orbitron font-bold rounded-lg transition-all flex-shrink-0 ${
                 topology === t
                   ? 'bg-emerald-500 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.6)] scale-105'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
@@ -928,13 +928,13 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
               {t}
             </button>
           ))}
-          <span className="text-[9px] font-mono text-slate-400 pl-2 pr-2 border-l border-slate-700/60 hidden sm:inline-block">
+          <span className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 pl-2 pr-2 border-l border-slate-700/60 hidden md:inline-block flex-shrink-0">
             {topoInfo.nominalVoltage}V • {topoInfo.energyKwh.toFixed(2)} kWh ({packLayout.cellCount} Cells)
           </span>
         </div>
 
         {/* View Mode Switcher */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-blue-500/25 shadow-xl">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-blue-500/25 shadow-xl self-start sm:self-auto overflow-x-auto max-w-full custom-scrollbar">
           {(
             [
               { mode: 'REALISTIC', label: '3D Pack', icon: <Layers className="w-3 h-3" /> },
@@ -946,7 +946,7 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
             <button
               key={m.mode}
               onClick={() => setRenderMode(m.mode)}
-              className={`flex items-center gap-1 px-2.5 py-1 text-[9px] font-orbitron font-bold rounded-lg transition-all ${
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[8.5px] sm:text-[9px] font-orbitron font-bold rounded-lg transition-all flex-shrink-0 ${
                 renderMode === m.mode
                   ? 'bg-blue-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.5)]'
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
