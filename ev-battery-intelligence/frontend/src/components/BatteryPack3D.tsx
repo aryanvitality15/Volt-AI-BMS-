@@ -197,30 +197,41 @@ function BatteryCell3D({
       }}
       onPointerOut={() => setHovered(false)}
     >
-      {/* Outer Prismatic Metallic Shell */}
+      {/* Outer Prismatic Casing with Sleek Futuristic Edges */}
       <mesh castShadow receiveShadow>
         <boxGeometry args={[0.42, 1.25, 0.38]} />
         <meshStandardMaterial
-          color={renderMode === 'XRAY' ? '#0f172a' : '#1e293b'}
-          metalness={renderMode === 'XRAY' ? 0.1 : 0.88}
-          roughness={renderMode === 'XRAY' ? 0.1 : 0.22}
-          transparent={renderMode === 'XRAY' || renderMode === 'THERMAL'}
-          opacity={renderMode === 'XRAY' ? 0.32 : renderMode === 'THERMAL' ? 0.65 : 0.94}
+          color={renderMode === 'XRAY' ? '#0369a1' : '#1e293b'}
+          metalness={renderMode === 'XRAY' ? 0.1 : 0.4}
+          roughness={renderMode === 'XRAY' ? 0.1 : 0.3}
+          transparent
+          opacity={renderMode === 'XRAY' ? 0.25 : renderMode === 'THERMAL' ? 0.5 : 0.65}
           wireframe={renderMode === 'XRAY'}
         />
       </mesh>
 
-      {/* Internal Active Core (SOC Fill Height & Color) */}
+      {/* Futuristic Glowing Edge Accent Ring around Cell Body */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[0.425, 1.255, 0.385]} />
+        <meshBasicMaterial
+          color={cellColor}
+          wireframe
+          transparent
+          opacity={hovered || isSelected ? 0.9 : 0.45}
+        />
+      </mesh>
+
+      {/* Internal Active Core (SOC Fill Height & Vivid Glow) */}
       <mesh position={[0, -0.625 + (1.2 * socFill) / 2, 0]}>
-        <boxGeometry args={[0.38, 1.2 * socFill, 0.34]} />
+        <boxGeometry args={[0.39, 1.2 * socFill, 0.35]} />
         <meshStandardMaterial
           color={cellColor}
           emissive={cellColor}
-          emissiveIntensity={hovered || isSelected ? 1.5 : 0.45}
+          emissiveIntensity={hovered || isSelected ? 2.2 : 0.95}
           transparent
-          opacity={0.82}
-          metalness={0.15}
-          roughness={0.25}
+          opacity={0.92}
+          metalness={0.2}
+          roughness={0.2}
         />
       </mesh>
 
@@ -232,7 +243,7 @@ function BatteryCell3D({
             color={cellColor}
             wireframe
             transparent
-            opacity={0.4}
+            opacity={0.5}
           />
         </mesh>
       )}
@@ -796,11 +807,12 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
         gl={{ antialias: true, alpha: true }}
         style={{ background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.95) 0%, #030712 100%)' }}
       >
-        <ambientLight intensity={0.45} />
-        <directionalLight position={[6, 10, 6]} intensity={1.1} castShadow />
-        <pointLight position={[-4, 3, 5]} intensity={0.85} color="#10b981" />
-        <pointLight position={[4, -2, 5]} intensity={0.65} color="#38bdf8" />
-        <pointLight position={[0, 4, -4]} intensity={0.45} color="#a855f7" />
+        <ambientLight intensity={0.9} />
+        <directionalLight position={[6, 10, 6]} intensity={1.6} castShadow />
+        <directionalLight position={[-6, -4, -4]} intensity={0.7} />
+        <pointLight position={[-4, 4, 6]} intensity={1.5} color="#10b981" />
+        <pointLight position={[4, 2, 6]} intensity={1.5} color="#38bdf8" />
+        <pointLight position={[0, 5, -3]} intensity={1.0} color="#06b6d4" />
 
         <OrbitControls
           ref={controlsRef}

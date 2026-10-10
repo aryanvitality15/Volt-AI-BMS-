@@ -27,7 +27,31 @@ interface ReportsViewProps {
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange }) => {
   const [reportData, setReportData] = useState<any>(null);
-  const [historyRows, setHistoryRows] = useState<any[]>([]);
+  // Default 25 realistic historical telemetry rows
+  const generateDefaultHistory = () => {
+    const rows = [];
+    const now = Date.now();
+    for (let i = 24; i >= 0; i--) {
+      const t = new Date(now - i * 60000);
+      const noise = Math.sin(i * 0.5) * 0.1;
+      rows.push({
+        timestamp: t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        battery_id: 'EV-BAT-001',
+        cycle: 624 - Math.floor(i / 10),
+        voltage: 25.62 + noise * 0.3,
+        pack_voltage: 25.62 + noise * 0.3,
+        current: 14.5 + noise * 1.5,
+        pack_current: 14.5 + noise * 1.5,
+        avg_temp: 26.2 + noise * 0.8,
+        avg_temperature: 26.2 + noise * 0.8,
+        soc: Math.max(20, Math.min(100, 68.5 - i * 0.15)),
+        soh: 87.4
+      });
+    }
+    return rows;
+  };
+
+  const [historyRows, setHistoryRows] = useState<any[]>(generateDefaultHistory);
   const [searchQuery, setSearchQuery] = useState('');
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [isSimRunning, setIsSimRunning] = useState(true);
@@ -47,7 +71,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
     fetch('/api/battery/history?limit=50')
       .then((res) => res.json())
       .then((json) => {
-        if (json && json.history) setHistoryRows(json.history);
+        if (json && json.history && json.history.length > 0) {
+          setHistoryRows(json.history);
+        }
       })
       .catch(() => {});
   }, []);
