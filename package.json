@@ -1,0 +1,11 @@
+{
+  "name": "volt-ai-bms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VoltAI - EV Battery Intelligence BMS Digital Twin",
+  "scripts": {
+    "build": "cd ev-battery-intelligence/frontend && npm install && npm run build",
+    "dev": "cd ev-battery-intelligence/frontend && npm run dev",
+    "start": "cd ev-battery-intelligence/frontend && npm run preview"
+  }
+}
