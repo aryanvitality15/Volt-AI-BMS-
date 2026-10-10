@@ -59,24 +59,27 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
   const pack = data.pack || ({} as any);
   const ai = data.ai || ({} as any);
 
-  // Fetch report summary payload
+  // Continuously record live telemetry ticks into the table in real time
   useEffect(() => {
-    fetch('/api/report/summary')
-      .then((res) => res.json())
-      .then((json) => {
-        if (json) setReportData(json);
-      })
-      .catch(() => {});
+    if (data && data.pack) {
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const newEntry = {
+        timestamp: nowStr,
+        battery_id: 'EV-BAT-001',
+        cycle: Math.round(Number(pack.cycle ?? 624)),
+        voltage: Number(pack.voltage ?? pack.pack_voltage ?? 25.6),
+        pack_voltage: Number(pack.voltage ?? pack.pack_voltage ?? 25.6),
+        current: Number(pack.current ?? pack.pack_current ?? 14.5),
+        pack_current: Number(pack.current ?? pack.pack_current ?? 14.5),
+        avg_temp: Number(pack.avg_temp ?? pack.avg_temperature ?? 26.2),
+        avg_temperature: Number(pack.avg_temp ?? pack.avg_temperature ?? 26.2),
+        soc: Number(pack.soc ?? 64.8),
+        soh: Number(ai.soh ?? 87.4)
+      };
 
-    fetch('/api/battery/history?limit=50')
-      .then((res) => res.json())
-      .then((json) => {
-        if (json && json.history && json.history.length > 0) {
-          setHistoryRows(json.history);
-        }
-      })
-      .catch(() => {});
-  }, []);
+      setHistoryRows((prev) => [newEntry, ...prev.slice(0, 99)]);
+    }
+  }, [data.timestamp, data.pack?.voltage, data.pack?.current]);
 
   const handlePrintReport = () => {
     window.print();

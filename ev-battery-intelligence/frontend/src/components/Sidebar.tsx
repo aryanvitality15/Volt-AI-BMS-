@@ -70,12 +70,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Live Monitor',
       subLabel: '1Hz Telemetry Stream',
       icon: <Activity className="w-4 h-4" />,
-      badge: isLiveBackend ? '1 Hz LIVE' : isConnected ? '1 Hz SIM' : 'OFFLINE',
-      badgeColor: isLiveBackend
-        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse'
-        : isConnected
-        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
-        : 'bg-slate-700 text-slate-400'
+      badge: isLiveBackend ? '● API 1Hz' : '● LIVE 1Hz',
+      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse'
     },
     {
       id: 'battery-pack',

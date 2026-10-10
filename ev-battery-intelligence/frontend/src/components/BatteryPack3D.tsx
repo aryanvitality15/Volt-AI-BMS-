@@ -227,7 +227,15 @@ function BatteryCell3D({
         <meshStandardMaterial
           color={cellColor}
           emissive={cellColor}
-          emissiveIntensity={hovered || isSelected ? 2.2 : 0.95}
+          emissiveIntensity={
+            hovered || isSelected
+              ? 2.6
+              : status === 'CRITICAL'
+              ? 2.2
+              : status === 'WARNING'
+              ? 1.5
+              : 0.95
+          }
           transparent
           opacity={0.92}
           metalness={0.2}
@@ -244,6 +252,18 @@ function BatteryCell3D({
             wireframe
             transparent
             opacity={0.5}
+          />
+        </mesh>
+      )}
+
+      {/* Warning Beacon Pulse for Faulted / Anomaly Cells */}
+      {(status === 'CRITICAL' || status === 'WARNING') && (
+        <mesh position={[0, 0.88, 0]}>
+          <sphereGeometry args={[0.045, 16, 16]} />
+          <meshStandardMaterial
+            color={status === 'CRITICAL' ? '#ef4444' : '#f59e0b'}
+            emissive={status === 'CRITICAL' ? '#ef4444' : '#f59e0b'}
+            emissiveIntensity={3.5}
           />
         </mesh>
       )}
