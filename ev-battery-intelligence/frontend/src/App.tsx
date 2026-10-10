@@ -251,6 +251,27 @@ export default function App() {
   const handleScenarioChange = async (newScenario: string) => {
     setScenario(newScenario);
     clientSimulator.setScenario(newScenario);
+    
+    // Immediately calculate and push updated simulation state
+    const nextState = clientSimulator.step(0.1);
+    setData(nextState);
+
+    // Update rolling history
+    const packVoltage = nextState.pack.voltage;
+    const packCurrent = nextState.pack.current;
+    const packTemp = nextState.pack.avg_temp;
+    const sohVal = nextState.ai.soh;
+
+    setHistory((prevHist) => {
+      const point = {
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        voltage: Number(packVoltage.toFixed(2)),
+        current: Number(packCurrent.toFixed(1)),
+        temp: Number(packTemp.toFixed(1)),
+        soh: Number(sohVal.toFixed(1))
+      };
+      return [...prevHist.slice(-49), point];
+    });
 
     try {
       await fetch('/api/simulator/scenario', {

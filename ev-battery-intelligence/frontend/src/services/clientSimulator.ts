@@ -88,27 +88,64 @@ export class ClientBatterySimulator {
         this.cells.forEach(c => c.temp_c = this.ambientTemp + 1.2 + (c.cell_id * 0.1));
       }
 
-      // Apply scenario parameter presets
+      // Apply scenario parameter presets with realistic electrochemical responses
       if (this.activeScenario === "FAST CHARGING") {
+        this.soh = 85.3;
+        this.soc = 72.0;
         this.mode = "CHARGING";
-        this.packCurrent = -50.0;
+        this.packCurrent = -52.0;
       } else if (this.activeScenario === "OVERCURRENT") {
-        this.packCurrent = 85.0;
+        this.soh = 82.1;
+        this.soc = 42.0;
+        this.packCurrent = 88.0;
       } else if (this.activeScenario === "HIGH C-RATE") {
-        this.packCurrent = 90.0;
+        this.soh = 79.4;
+        this.soc = 38.0;
+        this.packCurrent = 92.0;
       } else if (this.activeScenario === "DEEP DISCHARGE") {
-        this.soc = 8.5;
-        this.packCurrent = 20.0;
+        this.soh = 77.2;
+        this.soc = 4.2;
+        this.packCurrent = 12.0;
+      } else if (this.activeScenario === "UNDERVOLTAGE") {
+        this.soh = 78.6;
+        this.soc = 6.5;
+        this.packCurrent = 15.0;
       } else if (this.activeScenario === "LONG HIGH SOC OPERATION") {
+        this.soh = 83.0;
         this.soc = 98.5;
         this.mode = "IDLE";
-        this.packCurrent = 0.5;
+        this.packCurrent = 0.2;
       } else if (this.activeScenario === "HIGH TEMPERATURE") {
+        this.soh = 76.2;
+        this.soc = 58.4;
+        this.packCurrent = 36.0;
         this.cells.forEach(c => {
-          c.temp_c = Math.max(c.temp_c, 48.0);
-          c.resistance_mohm = 43.5;
+          c.temp_c = Math.max(c.temp_c, 52.5 + (c.cell_id * 0.3));
+          c.resistance_mohm = 46.5;
         });
+      } else if (this.activeScenario === "CELL IMBALANCE") {
+        this.soh = 81.5;
+        this.soc = 52.0;
+        this.packCurrent = 18.0;
+      } else if (this.activeScenario === "HIGH RESISTANCE") {
+        this.soh = 74.8;
+        this.soc = 48.0;
+        this.packCurrent = 24.0;
+      } else if (this.activeScenario === "SELF-DISCHARGE") {
+        this.soh = 80.2;
+        this.soc = 34.0;
+        this.packCurrent = 8.0;
+      } else if (this.activeScenario === "CAPACITY DEGRADATION") {
+        this.soh = 68.5;
+        this.soc = 45.0;
+        this.packCurrent = 14.0;
+      } else if (this.activeScenario === "SENSOR ANOMALY") {
+        this.soh = 87.4;
+        this.soc = 64.8;
+        this.packCurrent = 14.5;
       } else if (this.activeScenario === "NORMAL") {
+        this.soh = 87.4;
+        this.soc = 64.8;
         this.packCurrent = this.mode === "CHARGING" ? -15.0 : 14.5;
       }
       return true;
@@ -316,11 +353,65 @@ export class ClientBatterySimulator {
       anomalyScore = 72.0;
     }
 
-    // Remaining Useful Life (RUL) estimation
-    const eolCycle = 904;
-    const rulCycles = Math.max(0, Math.round(eolCycle - this.cycle));
-    const rulUncertainty = 35;
-    const soh100 = Number((this.soh - 2.0).toFixed(1));
+    // Remaining Useful Life (RUL) estimation & dynamic scenario degradation
+    let eolCycle = 904;
+    let rulCycles = 280;
+    let degradationRate = 0.0202;
+    let rulUncertainty = 35;
+
+    if (this.activeScenario === "HIGH TEMPERATURE") {
+      eolCycle = 740;
+      rulCycles = 115;
+      degradationRate = 0.0482;
+      rulUncertainty = 22;
+    } else if (this.activeScenario === "CELL IMBALANCE") {
+      eolCycle = 790;
+      rulCycles = 165;
+      degradationRate = 0.0325;
+      rulUncertainty = 28;
+    } else if (this.activeScenario === "HIGH RESISTANCE") {
+      eolCycle = 722;
+      rulCycles = 98;
+      degradationRate = 0.0512;
+      rulUncertainty = 18;
+    } else if (this.activeScenario === "OVERCURRENT") {
+      eolCycle = 755;
+      rulCycles = 130;
+      degradationRate = 0.0440;
+      rulUncertainty = 25;
+    } else if (this.activeScenario === "HIGH C-RATE") {
+      eolCycle = 735;
+      rulCycles = 110;
+      degradationRate = 0.0465;
+      rulUncertainty = 20;
+    } else if (this.activeScenario === "UNDERVOLTAGE") {
+      eolCycle = 706;
+      rulCycles = 82;
+      degradationRate = 0.0580;
+      rulUncertainty = 15;
+    } else if (this.activeScenario === "DEEP DISCHARGE") {
+      eolCycle = 694;
+      rulCycles = 70;
+      degradationRate = 0.0610;
+      rulUncertainty = 14;
+    } else if (this.activeScenario === "SELF-DISCHARGE") {
+      eolCycle = 780;
+      rulCycles = 155;
+      degradationRate = 0.0340;
+      rulUncertainty = 26;
+    } else if (this.activeScenario === "CAPACITY DEGRADATION") {
+      eolCycle = 669;
+      rulCycles = 45;
+      degradationRate = 0.0720;
+      rulUncertainty = 10;
+    } else if (this.activeScenario === "FAST CHARGING") {
+      eolCycle = 820;
+      rulCycles = 195;
+      degradationRate = 0.0290;
+      rulUncertainty = 30;
+    }
+
+    const soh100 = Number((this.soh - degradationRate * 100).toFixed(1));
 
     const aiState: AIEngineState = {
       soh: Number(this.soh.toFixed(1)),
@@ -339,13 +430,15 @@ export class ClientBatterySimulator {
 
     // 6. Battery Risk Index (BRI)
     let riskScore = 24.0;
-    if (this.activeScenario === "HIGH TEMPERATURE") riskScore = 84.5;
-    else if (this.activeScenario === "OVERCURRENT") riskScore = 79.0;
-    else if (this.activeScenario === "HIGH RESISTANCE") riskScore = 68.0;
-    else if (this.activeScenario === "CELL IMBALANCE") riskScore = 64.0;
-    else if (this.activeScenario === "UNDERVOLTAGE") riskScore = 72.0;
-    else if (this.activeScenario === "SENSOR ANOMALY") riskScore = 88.0;
-    else if (this.activeScenario === "FAST CHARGING") riskScore = 42.0;
+    if (this.activeScenario === "HIGH TEMPERATURE") riskScore = 88.5;
+    else if (this.activeScenario === "OVERCURRENT") riskScore = 84.0;
+    else if (this.activeScenario === "HIGH RESISTANCE") riskScore = 78.0;
+    else if (this.activeScenario === "CELL IMBALANCE") riskScore = 72.0;
+    else if (this.activeScenario === "UNDERVOLTAGE") riskScore = 82.0;
+    else if (this.activeScenario === "DEEP DISCHARGE") riskScore = 85.0;
+    else if (this.activeScenario === "CAPACITY DEGRADATION") riskScore = 91.0;
+    else if (this.activeScenario === "SENSOR ANOMALY") riskScore = 86.0;
+    else if (this.activeScenario === "FAST CHARGING") riskScore = 44.0;
 
     const riskLevel = riskScore > 75 ? "CRITICAL" : riskScore > 50 ? "WARNING" : "NORMAL";
     const riskStatus = riskScore > 75 ? "HIGH_RISK" : riskScore > 50 ? "MODERATE_RISK" : "HEALTHY";
@@ -355,13 +448,13 @@ export class ClientBatterySimulator {
       status: riskStatus,
       level: riskLevel,
       contributions_pct: {
-        temperature: Number((this.activeScenario === "HIGH TEMPERATURE" ? 48.0 : 25.0).toFixed(1)),
-        resistance: Number((this.activeScenario === "HIGH RESISTANCE" ? 42.0 : 22.0).toFixed(1)),
-        imbalance: Number((this.activeScenario === "CELL IMBALANCE" ? 44.0 : 18.0).toFixed(1)),
-        voltage: Number((this.activeScenario === "UNDERVOLTAGE" ? 38.0 : 15.0).toFixed(1)),
+        temperature: Number((this.activeScenario === "HIGH TEMPERATURE" ? 52.0 : 25.0).toFixed(1)),
+        resistance: Number((this.activeScenario === "HIGH RESISTANCE" ? 48.0 : 22.0).toFixed(1)),
+        imbalance: Number((this.activeScenario === "CELL IMBALANCE" ? 50.0 : 18.0).toFixed(1)),
+        voltage: Number((this.activeScenario === "UNDERVOLTAGE" || this.activeScenario === "DEEP DISCHARGE" ? 48.0 : 15.0).toFixed(1)),
         cycle: 12.0,
         soh: 5.0,
-        anomaly: isAnomaly ? 25.0 : 3.0
+        anomaly: isAnomaly ? 28.0 : 3.0
       }
     };
 
@@ -379,34 +472,34 @@ export class ClientBatterySimulator {
         "Uneven state-of-charge decay across parallel/series blocks"
       ];
     } else if (this.activeScenario === "HIGH TEMPERATURE") {
-      probableCause = "Excessive Internal Resistance / Inadequate Thermal Dissipation";
+      probableCause = "Thermal Runaway Precursor / Excessive Joule Heat Dissipation Failure";
       evidence = [
-        `Pack peak temperature reached ${maxTemp}°C (Threshold: 45.0°C)`,
+        `Pack peak temperature reached ${maxTemp}°C (Critical Cutoff: 45.0°C)`,
         `Temperature rise above ambient reached +${tempRise}°C`,
-        "Joule heating rate exceeding convection dissipation limit"
+        "Joule heating rate exceeds active convection cooling capability"
       ];
     } else if (this.activeScenario === "HIGH RESISTANCE") {
-      probableCause = "Ohmic Degradation / Current Collector Contact Degradation";
+      probableCause = "Ohmic Degradation / SEI Thickening & Current Collector Degradation";
       affectedCell = targetCellId;
       evidence = [
         `Internal resistance on Cell ${targetCellId} elevated to ${(this.cells[targetCellId - 1]?.resistance_mohm || 46.5).toFixed(1)} mΩ (+45%)`,
         `Voltage sag under discharge load reached ${voltageSag} V`,
-        "Elevated local heat generation observed during high-current draw"
+        "Elevated local heat generation observed during discharge cycle"
       ];
     } else if (this.activeScenario === "OVERCURRENT") {
-      probableCause = "Severe Inverter Load Demand / Unscheduled Acceleration Transient";
+      probableCause = "Severe Inverter Load Demand Surge / Ampacity Overload";
       evidence = [
         `Continuous current demand surged to ${this.packCurrent} A (${cRate}C rate)`,
         "Load exceeds continuous manufacturer discharge rating (40A)",
         `Resultant instant voltage sag of ${voltageSag} V across pack`
       ];
-    } else if (this.activeScenario === "UNDERVOLTAGE") {
-      probableCause = "Deep Discharge / Low SOC Operating Range";
+    } else if (this.activeScenario === "UNDERVOLTAGE" || this.activeScenario === "DEEP DISCHARGE") {
+      probableCause = "Deep Discharge Depletion / Lower Electrochemical Knee Reached";
       affectedCell = targetCellId;
       evidence = [
         `Minimum cell terminal voltage dropped to ${minVoltage} V (Cutoff: 2.800 V)`,
         `Cell ${targetCellId} reached lower electrochemical discharge knee`,
-        "Immediate charging or load shedding required"
+        "Immediate charging required to avoid copper dissolution"
       ];
     } else if (this.activeScenario === "SELF-DISCHARGE") {
       probableCause = "Internal Parasitic Reaction / Localized Micro-Leakage";
@@ -415,6 +508,13 @@ export class ClientBatterySimulator {
         `Abnormal quiescent SOC decay observed on Cell ${targetCellId}`,
         "Asymmetric open-circuit voltage decline relative to adjacent series cells",
         "Passive balancing current insufficient to compensate self-discharge"
+      ];
+    } else if (this.activeScenario === "CAPACITY DEGRADATION") {
+      probableCause = "Irreversible Cathode Degradation / Loss of Active Lithium Inventory";
+      evidence = [
+        `SOH dropped to critical threshold (${this.soh.toFixed(1)}% < 70%)`,
+        "Severe capacity fade from high cycle aging and thermal dwell",
+        "Pack replacement or module reconditioning recommended"
       ];
     } else if (this.activeScenario === "SENSOR ANOMALY") {
       probableCause = "BMS Voltage Sense Harness Discontinuity / Analog Front-End Glitch";
@@ -433,49 +533,67 @@ export class ClientBatterySimulator {
       confidence: faultConfidence
     };
 
-    // 8. Explainable AI (TreeSHAP) Factor Breakdown
-    const xaiFactors = [
-      {
-        name: "Cumulative Cycle Aging",
-        factor: "Cumulative Cycle Aging",
-        percentage: 38,
-        contribution: 38,
-        impact: "High",
-        direction: "Negative"
-      },
-      {
-        name: "Operating Temperature Stress",
-        factor: "Operating Temperature Stress",
-        percentage: this.activeScenario === "HIGH TEMPERATURE" ? 45 : 28,
-        contribution: this.activeScenario === "HIGH TEMPERATURE" ? 45 : 28,
-        impact: this.activeScenario === "HIGH TEMPERATURE" ? "Critical" : "Moderate",
-        direction: "Negative"
-      },
-      {
-        name: "Ohmic Resistance Growth",
-        factor: "Ohmic Resistance Growth",
-        percentage: this.activeScenario === "HIGH RESISTANCE" ? 36 : 18,
-        contribution: this.activeScenario === "HIGH RESISTANCE" ? 36 : 18,
-        impact: this.activeScenario === "HIGH RESISTANCE" ? "Critical" : "Moderate",
-        direction: "Negative"
-      },
-      {
-        name: "Cell Voltage Imbalance (ΔV)",
-        factor: "Cell Voltage Imbalance (ΔV)",
-        percentage: this.activeScenario === "CELL IMBALANCE" ? 35 : 10,
-        contribution: this.activeScenario === "CELL IMBALANCE" ? 35 : 10,
-        impact: this.activeScenario === "CELL IMBALANCE" ? "High" : "Low",
-        direction: "Negative"
-      },
-      {
-        name: "Current Stress Profile (C-Rate)",
-        factor: "Current Stress Profile (C-Rate)",
-        percentage: 6,
-        contribution: 6,
-        impact: "Minimal",
-        direction: "Neutral"
-      }
-    ];
+    // 8. Dynamic Scenario-Tailored TreeSHAP Factor Breakdown
+    let xaiFactors: Array<{ name: string; factor: string; percentage: number; contribution: number; impact: string; direction: string }>;
+
+    if (this.activeScenario === "HIGH TEMPERATURE") {
+      xaiFactors = [
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Stress", percentage: 52.4, contribution: 52.4, impact: "Critical", direction: "Negative" },
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 26.2, contribution: 26.2, impact: "High", direction: "Negative" },
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 14.8, contribution: 14.8, impact: "Moderate", direction: "Negative" },
+        { name: "Cell Voltage Imbalance (ΔV)", factor: "Cell Voltage Imbalance", percentage: 4.2, contribution: 4.2, impact: "Low", direction: "Negative" },
+        { name: "Current Stress Profile", factor: "Current Stress Profile", percentage: 2.4, contribution: 2.4, impact: "Minimal", direction: "Neutral" }
+      ];
+    } else if (this.activeScenario === "CELL IMBALANCE" || this.activeScenario === "SELF-DISCHARGE") {
+      xaiFactors = [
+        { name: "Cell Voltage Imbalance (ΔV)", factor: "Cell Voltage Imbalance", percentage: 49.6, contribution: 49.6, impact: "Critical", direction: "Negative" },
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 25.4, contribution: 25.4, impact: "High", direction: "Negative" },
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 13.8, contribution: 13.8, impact: "Moderate", direction: "Negative" },
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Stress", percentage: 8.2, contribution: 8.2, impact: "Low", direction: "Negative" },
+        { name: "Current Stress Profile", factor: "Current Stress Profile", percentage: 3.0, contribution: 3.0, impact: "Minimal", direction: "Neutral" }
+      ];
+    } else if (this.activeScenario === "HIGH RESISTANCE") {
+      xaiFactors = [
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 51.2, contribution: 51.2, impact: "Critical", direction: "Negative" },
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Stress", percentage: 24.6, contribution: 24.6, impact: "High", direction: "Negative" },
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 17.4, contribution: 17.4, impact: "Moderate", direction: "Negative" },
+        { name: "Cell Voltage Imbalance (ΔV)", factor: "Cell Voltage Imbalance", percentage: 4.5, contribution: 4.5, impact: "Low", direction: "Negative" },
+        { name: "Current Stress Profile", factor: "Current Stress Profile", percentage: 2.3, contribution: 2.3, impact: "Minimal", direction: "Neutral" }
+      ];
+    } else if (this.activeScenario === "OVERCURRENT" || this.activeScenario === "HIGH C-RATE") {
+      xaiFactors = [
+        { name: "Current Stress Profile (C-Rate)", factor: "Current Stress Profile", percentage: 48.8, contribution: 48.8, impact: "Critical", direction: "Negative" },
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Stress", percentage: 31.4, contribution: 31.4, impact: "High", direction: "Negative" },
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 14.2, contribution: 14.2, impact: "Moderate", direction: "Negative" },
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 3.6, contribution: 3.6, impact: "Low", direction: "Negative" },
+        { name: "Cell Voltage Imbalance (ΔV)", factor: "Cell Voltage Imbalance", percentage: 2.0, contribution: 2.0, impact: "Minimal", direction: "Neutral" }
+      ];
+    } else if (this.activeScenario === "UNDERVOLTAGE" || this.activeScenario === "DEEP DISCHARGE") {
+      xaiFactors = [
+        { name: "Deep Depletion Knee Sag", factor: "Terminal Voltage Sag", percentage: 47.8, contribution: 47.8, impact: "Critical", direction: "Negative" },
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 26.4, contribution: 26.4, impact: "High", direction: "Negative" },
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 15.2, contribution: 15.2, impact: "Moderate", direction: "Negative" },
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Stress", percentage: 7.6, contribution: 7.6, impact: "Low", direction: "Negative" },
+        { name: "Current Stress Profile", factor: "Current Stress Profile", percentage: 3.0, contribution: 3.0, impact: "Minimal", direction: "Neutral" }
+      ];
+    } else if (this.activeScenario === "CAPACITY DEGRADATION") {
+      xaiFactors = [
+        { name: "Active Material Inventory Loss", factor: "Capacity Fade Loss", percentage: 54.0, contribution: 54.0, impact: "Critical", direction: "Negative" },
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 24.5, contribution: 24.5, impact: "High", direction: "Negative" },
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 13.8, contribution: 13.8, impact: "Moderate", direction: "Negative" },
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Stress", percentage: 5.5, contribution: 5.5, impact: "Low", direction: "Negative" },
+        { name: "Current Stress Profile", factor: "Current Stress Profile", percentage: 2.2, contribution: 2.2, impact: "Minimal", direction: "Neutral" }
+      ];
+    } else {
+      // Nominal baseline
+      xaiFactors = [
+        { name: "Cumulative Cycle Aging", factor: "Cumulative Cycle Aging", percentage: 41.2, contribution: 41.2, impact: "High", direction: "Negative" },
+        { name: "Thermal Operation Rise", factor: "Operating Temperature Rise", percentage: 32.4, contribution: 32.4, impact: "High", direction: "Negative" },
+        { name: "Ohmic Resistance Growth", factor: "Ohmic Resistance Growth", percentage: 15.6, contribution: 15.6, impact: "Moderate", direction: "Negative" },
+        { name: "Cell Voltage Imbalance (ΔV)", factor: "Cell Voltage Imbalance", percentage: 7.2, contribution: 7.2, impact: "Low", direction: "Negative" },
+        { name: "Current Stress Profile", factor: "Current Stress Profile", percentage: 3.6, contribution: 3.6, impact: "Minimal", direction: "Neutral" }
+      ];
+    }
 
     // Normalize SHAP percentages to 100%
     const totalShap = xaiFactors.reduce((a, b) => a + b.percentage, 0);
