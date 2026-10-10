@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: ev-battery-intelligence
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "cd frontend && npm ci && npm run build && cd ../backend && pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/status
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: SIMULATION_INTERVAL_SEC
+        value: 1.0
+      - key: SIMULATOR_SCENARIO
+        value: NORMAL
+      - key: PYTHONUNBUFFERED
+        value: "1"

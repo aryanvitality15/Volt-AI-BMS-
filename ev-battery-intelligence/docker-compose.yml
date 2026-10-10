@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  ev-battery-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ev-battery-intelligence:latest
+    container_name: ev_battery_platform
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    volumes:
+      - battery_db_data:/app/backend/data
+
+volumes:
+  battery_db_data:

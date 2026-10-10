@@ -1,0 +1,42 @@
+# Environment & Secrets
+.env
+.env*.local
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+.npm
+.yarn/
+dist/
+build/
+
+# Database files (local SQLite storage - never track live database files)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Logs & Temporary
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

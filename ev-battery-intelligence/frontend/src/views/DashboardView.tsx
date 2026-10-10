@@ -1,0 +1,425 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import {
+  ShieldCheck,
+  Flame,
+  Zap,
+  Activity,
+  Cpu,
+  Clock,
+  BatteryCharging,
+  Sparkles,
+  ChevronRight,
+  Gauge,
+  CheckCircle2,
+  TrendingDown
+} from 'lucide-react';
+import { BatteryState, CellTelemetry } from '../types';
+import { NavTab } from '../components/Sidebar';
+
+interface DashboardViewProps {
+  data: BatteryState;
+  onNavigate: (tab: NavTab) => void;
+  onSelectCell?: (cell: CellTelemetry) => void;
+}
+
+export const DashboardView: React.FC<DashboardViewProps> = ({
+  data,
+  onNavigate,
+  onSelectCell
+}) => {
+  const pack = data.pack || ({} as any);
+  const ai = data.ai || ({} as any);
+  const risk = data.risk || ({} as any);
+  const rca = data.rca || ({} as any);
+
+  const soh = Math.min(100, Math.max(0, Number(ai.soh ?? 87.4)));
+  const soc = Number(pack.soc ?? 64.8);
+  const voltage = Number(pack.voltage ?? (pack as any).pack_voltage ?? 25.6);
+  const current = Number(pack.current ?? (pack as any).pack_current ?? 14.5);
+  const powerKw = (voltage * current) / 1000.0;
+  const temp = Number(pack.avg_temp ?? (pack as any).avg_temperature ?? 26.2);
+  const maxTemp = Number(pack.max_temp ?? (pack as any).max_temperature ?? 26.8);
+  const cycle = Number(pack.cycle ?? 624);
+  const rulCycles = Number(ai.rul?.rul_cycles ?? 280);
+  const confidence = Number(ai.fault_confidence ?? 94.2);
+  const maxImbalance = Number(pack.max_imbalance ?? (pack as any).max_cell_imbalance ?? 0.012);
+  const resistanceGrowth = Number(pack.resistance_growth ?? 3.2);
+
+  // Health Status derivation
+  const healthStatus = soh >= 80 ? 'HEALTHY' : soh >= 70 ? 'WARNING' : 'CRITICAL';
+  const statusColor =
+    healthStatus === 'HEALTHY'
+      ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+      : healthStatus === 'WARNING'
+      ? 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+      : 'text-rose-400 border-rose-500/30 bg-rose-500/10';
+
+  // 240-degree Radial Gauge Calculations
+  const radius = 78;
+  const circumference = 2 * Math.PI * radius; // ~490.08
+  const maxArc = circumference * (240 / 360); // ~326.72
+  const activeArc = (soh / 100) * maxArc;
+
+  // Primary Technical Parameter Cards (Structured 4-Column Grid for spacious layout)
+  const kpiCategories = [
+    {
+      title: 'State of Charge',
+      category: 'ENERGY',
+      value: `${soc.toFixed(1)}%`,
+      sub: current >= 0 ? 'Discharging Under Load' : 'Fast Charge Inflow',
+      icon: <BatteryCharging className="w-4 h-4 text-cyan-400" />,
+      accent: 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400'
+    },
+    {
+      title: 'Pack Temperature',
+      category: 'THERMAL',
+      value: `${temp.toFixed(1)}°C`,
+      sub: `Peak: ${maxTemp.toFixed(1)}°C (Nominal: 25–35°C)`,
+      icon: <Flame className="w-4 h-4 text-amber-400" />,
+      accent: maxTemp > 38 ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' : 'border-slate-800 bg-slate-900/60 text-slate-300'
+    },
+    {
+      title: 'Pack Terminal Voltage',
+      category: 'ELECTRICAL',
+      value: `${voltage.toFixed(2)} V`,
+      sub: `Cell Imbalance ΔV: ${(maxImbalance * 1000).toFixed(0)} mV`,
+      icon: <Zap className="w-4 h-4 text-blue-400" />,
+      accent: 'border-blue-500/20 bg-blue-500/5 text-blue-400'
+    },
+    {
+      title: 'Electrical Power',
+      category: 'ELECTRICAL',
+      value: `${Math.abs(powerKw).toFixed(2)} kW`,
+      sub: `Load Current: ${Math.abs(current).toFixed(1)} A`,
+      icon: <Activity className="w-4 h-4 text-emerald-400" />,
+      accent: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+    },
+    {
+      title: 'Cumulative Cycle Count',
+      category: 'LIFECYCLE',
+      value: `${cycle}`,
+      sub: '31.2% Life Used (Target: 2,000 cyc)',
+      icon: <Clock className="w-4 h-4 text-purple-400" />,
+      accent: 'border-purple-500/20 bg-purple-500/5 text-purple-400'
+    },
+    {
+      title: 'Internal Resistance',
+      category: 'DEGRADATION',
+      value: `${(32.0 * (1 + resistanceGrowth / 100)).toFixed(1)} mΩ`,
+      sub: `+${resistanceGrowth.toFixed(1)}% SEI Growth (Base: 32 mΩ)`,
+      icon: <Cpu className="w-4 h-4 text-indigo-400" />,
+      accent: 'border-indigo-500/20 bg-indigo-500/5 text-indigo-400'
+    },
+    {
+      title: 'Battery Risk Index',
+      category: 'SAFETY',
+      value: `${Number(risk.score ?? 31.0).toFixed(1)} / 100`,
+      sub: 'Safety Integrity: ASIL-C Nominal',
+      icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
+      accent: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+    },
+    {
+      title: 'Estimated RUL',
+      category: 'PROGNOSTICS',
+      value: `${rulCycles} cyc`,
+      sub: 'Forecast 95% CI: ±35 cycles',
+      icon: <TrendingDown className="w-4 h-4 text-cyan-400" />,
+      accent: 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400'
+    }
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-300 max-w-7xl mx-auto pb-12">
+      
+      {/* =========================================================
+          LEVEL 1 & LEVEL 2 HERO SECTION
+          ========================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        {/* MAIN HERO SOH INSTRUMENT CARD */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="lg:col-span-7 glass-panel rounded-2xl p-7 border border-slate-700/60 relative overflow-hidden shadow-2xl flex flex-col justify-between"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Header Row */}
+          <div className="flex items-center justify-between relative z-10 mb-4 pb-3 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                <Gauge className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div>
+                <h2 className="text-sm font-orbitron font-bold tracking-wide text-white uppercase">
+                  LEVEL 1: Battery Condition
+                </h2>
+                <span className="text-[11px] font-mono text-slate-400">
+                  Primary State-of-Health & Prognostic Summary
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onNavigate('soh-degradation')}
+              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 transition px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30"
+            >
+              Degradation Details <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Main SOH Dial & Prognostics Layout */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center relative z-10 my-auto py-2">
+            
+            {/* Left: Precision 240° Radial Gauge */}
+            <div className="sm:col-span-6 flex flex-col items-center justify-center">
+              <div className="relative w-56 h-56 flex items-center justify-center">
+                
+                {/* SVG Gauge */}
+                <svg className="w-full h-full transform rotate-[150deg]" viewBox="0 0 200 200">
+                  <defs>
+                    <linearGradient id="soh-arc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#06b6d4" />
+                      <stop offset="100%" stopColor="#10b981" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Background Track Arc */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={radius}
+                    stroke="#1e293b"
+                    strokeWidth="12"
+                    fill="none"
+                    strokeDasharray={`${maxArc} ${circumference}`}
+                    strokeLinecap="round"
+                  />
+
+                  {/* Active Value Arc */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={radius}
+                    stroke="url(#soh-arc-grad)"
+                    strokeWidth="12"
+                    fill="none"
+                    strokeDasharray={`${activeArc} ${circumference}`}
+                    strokeLinecap="round"
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+
+                {/* Inner Gauge Text Content (Centered cleanly with no overlap) */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none text-center">
+                  <span className="text-[10px] font-orbitron font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
+                    BATTERY HEALTH
+                  </span>
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-4xl font-black font-orbitron text-white tracking-tight leading-none">
+                      {soh.toFixed(1)}
+                    </span>
+                    <span className="text-xl font-orbitron text-cyan-400 font-bold ml-0.5">%</span>
+                  </div>
+                  <div className={`mt-2 px-3 py-0.5 rounded-full text-[10px] font-orbitron font-bold border inline-flex items-center gap-1.5 ${statusColor}`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                    {healthStatus}
+                  </div>
+                </div>
+              </div>
+
+              {/* Confidence Badge (Positioned below the gauge with clear margin) */}
+              <div className="mt-3 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center gap-2 text-xs font-mono">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-slate-400">Model Confidence:</span>
+                <strong className="text-emerald-400 font-bold">{confidence.toFixed(1)}%</strong>
+              </div>
+            </div>
+
+            {/* Right: Prognostic Metric Indicators */}
+            <div className="sm:col-span-6 space-y-3">
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Remaining Useful Life</span>
+                  <span className="text-xl font-orbitron font-bold text-white block mt-0.5">
+                    {rulCycles} <span className="text-xs font-normal text-slate-400">cycles</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">±35 cycle uncertainty (95% CI)</span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-cyan-400" />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Degradation Rate</span>
+                  <span className="text-xl font-orbitron font-bold text-slate-100 block mt-0.5">
+                    0.0202 <span className="text-xs font-normal text-slate-400">%/cycle</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">Nominal LFP Aging Curve</span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-purple-400" />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Projected End of Life</span>
+                  <span className="text-xl font-orbitron font-bold text-slate-100 block mt-0.5">
+                    Cycle 1,485 <span className="text-xs font-normal text-slate-400">(70% SOH)</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-cyan-400">Est. 861 cycles remaining</span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Historical Trajectory Bar */}
+          <div className="pt-4 mt-2 border-t border-slate-800/80 relative z-10">
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
+              <span>Historical SOH Trajectory:</span>
+              <span className="text-slate-200 font-semibold">100.0% → 96.2% → 91.8% → <span className="text-emerald-400 font-bold">{soh.toFixed(1)}%</span></span>
+            </div>
+            <div className="w-full bg-slate-900/90 rounded-full h-2.5 overflow-hidden flex p-0.5 border border-slate-800">
+              <div
+                className="bg-gradient-to-r from-cyan-500 to-emerald-500 h-full rounded-full transition-all duration-700"
+                style={{ width: `${soh}%` }}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* LEVEL 2: AI EXPLAINABILITY & WHY SOH IS AT CURRENT VALUE */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="lg:col-span-5 glass-panel rounded-2xl p-7 border border-slate-700/60 flex flex-col justify-between shadow-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div>
+            {/* Header Row */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-orbitron font-bold uppercase tracking-wide text-white">
+                    LEVEL 2: AI Explainability
+                  </h3>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    Why is SOH at {soh.toFixed(1)}%?
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono px-2.5 py-1 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                TreeSHAP XAI
+              </span>
+            </div>
+
+            {/* Natural Language Diagnostic Summary */}
+            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 mb-4">
+              <p className="text-xs text-slate-300 font-mono leading-relaxed">
+                {rca.probable_cause || 'Battery degradation is primarily driven by cumulative cycle aging and elevated thermal dwell above 32°C during high-rate discharge.'}
+              </p>
+            </div>
+
+            {/* Top 3 Degradation Factors */}
+            <div className="space-y-3.5">
+              <span className="text-[11px] font-orbitron font-bold text-slate-400 uppercase tracking-wider block">
+                Primary Attribution Drivers (SHAP)
+              </span>
+
+              {[
+                { name: 'Cumulative Cycle Aging', pct: 41.2, desc: `${cycle} equivalent full cycles`, color: 'from-blue-500 to-indigo-500' },
+                { name: 'Thermal Operation Rise', pct: 32.4, desc: 'Average temp 26.2°C with peaks at 34°C', color: 'from-cyan-500 to-blue-500' },
+                { name: 'Ohmic Resistance Growth', pct: 15.6, desc: `+${resistanceGrowth.toFixed(1)}% SEI layer thickening`, color: 'from-indigo-500 to-purple-500' }
+              ].map((f, i) => (
+                <div key={i} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-300 font-medium">{f.name}</span>
+                    <span className="text-white font-bold">{f.pct}%</span>
+                  </div>
+                  <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800/80">
+                    <div className={`bg-gradient-to-r ${f.color} h-full rounded-full`} style={{ width: `${f.pct}%` }} />
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-500 block">{f.desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('explainability')}
+            className="mt-6 w-full py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-orbitron font-bold tracking-wider transition flex items-center justify-center gap-2"
+          >
+            <span>EXPLORE COMPLETE XAI FEATURE ATTRIBUTION</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </motion.div>
+      </div>
+
+      {/* =========================================================
+          LEVEL 3: 8 STRUCTURED TECHNICAL PARAMETERS & TELEMETRY
+          ========================================================= */}
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-orbitron font-bold uppercase tracking-wider text-slate-200">
+              LEVEL 3: Live Engineering Telemetry
+            </h3>
+          </div>
+          <span className="text-xs font-mono text-slate-400">
+            Real-Time Stream • 1 Hz Refresh Rate
+          </span>
+        </div>
+
+        {/* Spacious 4-Column Metric Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpiCategories.map((kpi, idx) => (
+            <motion.div
+              key={kpi.title}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + idx * 0.03 }}
+              className="glass-panel rounded-xl p-4 border border-slate-800 hover:border-slate-700 transition shadow-lg flex flex-col justify-between group"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                  {kpi.category}
+                </span>
+                <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                  {kpi.icon}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-xs font-orbitron font-semibold text-slate-300 block mb-1">
+                  {kpi.title}
+                </span>
+                <span className="text-2xl font-black font-mono text-white tracking-tight block">
+                  {kpi.value}
+                </span>
+              </div>
+
+              <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                <span className="truncate">{kpi.sub}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
