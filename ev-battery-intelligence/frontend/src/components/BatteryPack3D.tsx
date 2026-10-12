@@ -201,12 +201,13 @@ function BatteryCell3D({
       <mesh castShadow receiveShadow>
         <boxGeometry args={[0.42, 1.25, 0.38]} />
         <meshStandardMaterial
-          color={renderMode === 'XRAY' ? '#0369a1' : '#1e293b'}
-          metalness={renderMode === 'XRAY' ? 0.1 : 0.4}
-          roughness={renderMode === 'XRAY' ? 0.1 : 0.3}
+          color={renderMode === 'XRAY' ? '#0284c7' : '#334155'}
+          metalness={renderMode === 'XRAY' ? 0.1 : 0.2}
+          roughness={renderMode === 'XRAY' ? 0.1 : 0.2}
           transparent
-          opacity={renderMode === 'XRAY' ? 0.25 : renderMode === 'THERMAL' ? 0.5 : 0.65}
+          opacity={renderMode === 'XRAY' ? 0.2 : renderMode === 'THERMAL' ? 0.35 : 0.3}
           wireframe={renderMode === 'XRAY'}
+          depthWrite={false}
         />
       </mesh>
 
@@ -217,7 +218,8 @@ function BatteryCell3D({
           color={cellColor}
           wireframe
           transparent
-          opacity={hovered || isSelected ? 0.9 : 0.45}
+          opacity={hovered || isSelected ? 0.95 : 0.6}
+          depthWrite={false}
         />
       </mesh>
 
@@ -229,17 +231,17 @@ function BatteryCell3D({
           emissive={cellColor}
           emissiveIntensity={
             hovered || isSelected
-              ? 2.6
+              ? 3.2
               : status === 'CRITICAL'
-              ? 2.2
+              ? 2.8
               : status === 'WARNING'
-              ? 1.5
-              : 0.95
+              ? 2.2
+              : 1.8
           }
           transparent
-          opacity={0.92}
-          metalness={0.2}
-          roughness={0.2}
+          opacity={0.96}
+          metalness={0.1}
+          roughness={0.15}
         />
       </mesh>
 
@@ -306,9 +308,10 @@ function BatteryCell3D({
         <meshStandardMaterial
           color={cellColor}
           emissive={cellColor}
-          emissiveIntensity={hovered || isSelected ? 3.5 : 1.2}
+          emissiveIntensity={hovered || isSelected ? 3.5 : 1.8}
           transparent
-          opacity={0.88}
+          opacity={0.9}
+          depthWrite={false}
         />
       </mesh>
 
@@ -487,17 +490,20 @@ function BifurcationStructure({
 
   return (
     <group>
-      {/* Central Longitudinal Fire-Retardant Bifurcation Divider (Separating Banks) */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[totalW + 0.4, 1.4, 0.08]} />
-        <meshStandardMaterial
-          color="#0f172a"
-          metalness={0.8}
-          roughness={0.3}
-          transparent
-          opacity={0.8}
-        />
-      </mesh>
+      {/* Central Longitudinal Fire-Retardant Bifurcation Divider (Separating Banks only when > 1 bank) */}
+      {bankCount > 1 && (
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[totalW + 0.4, 1.4, 0.08]} />
+          <meshStandardMaterial
+            color="#0f172a"
+            metalness={0.8}
+            roughness={0.3}
+            transparent
+            opacity={0.7}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
 
       {/* Module Perimeter Aluminum Protective Enclosure Frame */}
       <mesh position={[0, -0.75, 0]}>
@@ -823,16 +829,18 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
     <div className="w-full h-[360px] sm:h-[460px] lg:h-[520px] rounded-2xl overflow-hidden glass-panel relative border border-slate-700/50 shadow-2xl">
       {/* 3D Canvas Viewport */}
       <Canvas
-        camera={{ position: [0, 2.5, 6.0], fov: 45 }}
+        camera={{ position: [0, 2.2, 5.8], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
         style={{ background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.95) 0%, #030712 100%)' }}
       >
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[6, 10, 6]} intensity={1.6} castShadow />
-        <directionalLight position={[-6, -4, -4]} intensity={0.7} />
-        <pointLight position={[-4, 4, 6]} intensity={1.5} color="#10b981" />
-        <pointLight position={[4, 2, 6]} intensity={1.5} color="#38bdf8" />
-        <pointLight position={[0, 5, -3]} intensity={1.0} color="#06b6d4" />
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[0, 8, 8]} intensity={2.2} castShadow />
+        <directionalLight position={[-6, 6, 4]} intensity={1.4} />
+        <directionalLight position={[6, 6, 4]} intensity={1.4} />
+        <directionalLight position={[0, -4, 4]} intensity={0.8} />
+        <pointLight position={[-3, 3, 5]} intensity={2.0} color="#10b981" />
+        <pointLight position={[3, 3, 5]} intensity={2.0} color="#38bdf8" />
+        <pointLight position={[0, 5, -2]} intensity={1.2} color="#06b6d4" />
 
         <OrbitControls
           ref={controlsRef}
@@ -848,7 +856,7 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
         <CameraRig selectedCell={selectedCell} cellsLayout={packLayout.cells} />
 
         <Float speed={autoRotate ? 0 : 0.8} rotationIntensity={0.07} floatIntensity={0.1}>
-          <group rotation={[0.08, 0.22, 0]}>
+          <group rotation={[0.08, 0.12, 0]}>
             {/* Battery Prismatic Cells */}
             {packLayout.cells.map(({ cell, position, bankIndex }, i) => (
               <BatteryCell3D
