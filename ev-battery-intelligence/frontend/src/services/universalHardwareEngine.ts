@@ -129,6 +129,18 @@ export class UniversalHardwareEngine {
     return typeof navigator !== 'undefined' && Boolean(navigator.serial);
   }
 
+  public getTransport(): HardwareTransportType {
+    return this.transport;
+  }
+
+  public getConnectionState(): HardwareConnectionState {
+    return this.connectionState;
+  }
+
+  public getDeviceName(): string | null {
+    return this.deviceName;
+  }
+
   // ==========================================================================
   // 1. BLUETOOTH LOW ENERGY (BLE) ENGINE
   // ==========================================================================

@@ -28,6 +28,7 @@ import {
   ReferenceLine
 } from 'recharts';
 import { BatteryState } from '../types';
+import { universalHardwareEngine } from '../services/universalHardwareEngine';
 
 interface LiveMonitorViewProps {
   data: BatteryState;
@@ -92,7 +93,16 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
             <span>● LIVE TELEMETRY STREAM</span>
           </div>
           <span className="text-[10px] font-mono text-slate-400">
-            Source: <strong className="text-cyan-400">Synthetic Grounded Physics Simulator (LFP 8S1P)</strong>
+            Source:{' '}
+            <strong className="text-cyan-400">
+              {universalHardwareEngine.getTransport() === 'BLE'
+                ? `Physical BLE Device (${universalHardwareEngine.getDeviceName() || 'Nordic UART'})`
+                : universalHardwareEngine.getTransport() === 'WIFI_WS' || universalHardwareEngine.getTransport() === 'WIFI_HTTP'
+                ? `Wi-Fi Direct Stream (${universalHardwareEngine.getDeviceName() || 'ESP32'})`
+                : universalHardwareEngine.getTransport() === 'SERIAL_UART'
+                ? `Direct USB UART (${universalHardwareEngine.getDeviceName() || '115200 baud'})`
+                : 'Synthetic Grounded Physics Simulator (LFP 8S1P)'}
+            </strong>
           </span>
         </div>
 

@@ -335,11 +335,19 @@ function BatteryCell3D({
         </group>
       )}
 
+      {/* Active Cell Balancing Bleed Indicator Ring */}
+      {voltage > meanVoltage + 0.008 && (
+        <mesh position={[0, 0.72, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.13, 0.18, 24]} />
+          <meshBasicMaterial color="#06b6d4" wireframe transparent opacity={0.85} />
+        </mesh>
+      )}
+
       {/* 3D Cell ID Floating Label */}
       {showLabels && (
         <Html position={[0, -0.92, 0]} center distanceFactor={8}>
           <div
-            className={`pointer-events-none select-none font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border transition-all duration-200 ${
+            className={`pointer-events-none select-none font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border transition-all duration-200 flex items-center gap-1 ${
               hovered || isSelected
                 ? 'bg-emerald-500/90 text-slate-950 border-white shadow-[0_0_12px_rgba(16,185,129,0.9)] scale-110'
                 : status === 'CRITICAL'
@@ -349,8 +357,13 @@ function BatteryCell3D({
                 : 'bg-slate-900/80 text-slate-300 border-slate-700/60'
             }`}
           >
-            C{cell.cell_id}
-            <span className="text-[7.5px] opacity-75 ml-1">{voltage.toFixed(2)}V</span>
+            <span>C{cell.cell_id}</span>
+            <span className="text-[7.5px] opacity-75">{voltage.toFixed(2)}V</span>
+            {voltage > meanVoltage + 0.008 && (
+              <span className="text-[6.5px] px-1 py-0.2 rounded bg-cyan-400 text-slate-950 font-extrabold uppercase">
+                BAL
+              </span>
+            )}
           </div>
         </Html>
       )}
