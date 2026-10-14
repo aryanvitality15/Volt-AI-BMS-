@@ -235,31 +235,41 @@ body {
 .text-gradient-display {
   background: linear-gradient(135deg, #a5b4fc 0%, #bae6fd 50%, #fde68a 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .text-gradient-emerald {
   background: linear-gradient(135deg, #34d399 0%, #6ee7b7 50%, #a7f3d0 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .text-gradient-cyan {
   background: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 50%, #bae6fd 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .text-gradient-amber {
   background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 50%, #fef3c7 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .text-gradient-rose {
   background: linear-gradient(135deg, #fb7185 0%, #fda4af 50%, #ffe4e6 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 /* ─── Historical Telemetry Table Styling ─── */
@@ -360,6 +370,7 @@ body {
 /* Range input styling */
 input[type="range"] {
   -webkit-appearance: none;
+  appearance: none;
   height: 4px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.12);
@@ -367,6 +378,7 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 16px;
   height: 16px;
   border-radius: 50%;
