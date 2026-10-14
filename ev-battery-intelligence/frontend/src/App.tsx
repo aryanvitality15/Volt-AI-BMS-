@@ -30,6 +30,7 @@ import {
   HardwareStats
 } from './services/hardwareTelemetry';
 import { universalHardwareEngine } from './services/universalHardwareEngine';
+import { esp32Bridge } from './services/esp32HardwareBridge';
 import { accountStorage } from './services/accountStorageEngine';
 import { onlineMl } from './services/onlineMlEngine';
 
@@ -287,6 +288,8 @@ export default function App() {
     const activeEmail = operatorSession?.email || 'operator@voltbms.io';
     universalHardwareEngine.setAccountEmail(activeEmail);
     universalHardwareEngine.setBaseline(data);
+    esp32Bridge.setAccountEmail(activeEmail);
+    esp32Bridge.setBaseline(data);
     accountStorage.loadMlCheckpoint(activeEmail).then((ckpt) => {
       if (ckpt) {
         onlineMl.restoreCheckpoint(ckpt);
@@ -381,6 +384,97 @@ export default function App() {
           if (stats.state === 'STREAMING' || stats.state === 'CONNECTED') {
             setHardwareSourceMode('SERIAL');
           } else if (hardwareSourceMode === 'SERIAL') {
+            setHardwareSourceMode('SIMULATOR');
+          }
+        }
+      }
+    );
+
+    // Register Dedicated ESP32 Firmware Node Bridge (10Hz Streams: BLE, WebSocket, HTTP, USB Serial)
+    esp32Bridge.setBaseline(data);
+    esp32Bridge.setCallbacks(
+      (normalizedState, rawPayload) => {
+        setLastRawPacket(typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload, null, 2));
+        setData(normalizedState);
+        const packVoltage = normalizedState.pack.voltage;
+        const packCurrent = normalizedState.pack.current;
+        const packTemp = normalizedState.pack.avg_temp;
+        const sohVal = normalizedState.ai.soh;
+
+        setHistory((prevHist) => {
+          const point = {
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            voltage: Number(packVoltage.toFixed(2)),
+            current: Number(packCurrent.toFixed(1)),
+            temp: Number(packTemp.toFixed(1)),
+            soh: Number(sohVal.toFixed(1))
+          };
+          return [...prevHist.slice(-49), point];
+        });
+
+        // Instant hardware threshold safety checks for 48V/13S BMS
+        if (packVoltage > 56.5 || packVoltage < 36.0 || normalizedState.pack.max_imbalance > 0.045) {
+          setAlerts((prevAlerts) => {
+            const hasRecentAlert = prevAlerts.some((a) => a.type === 'ESP32 Hardware Node' && a.status === 'ACTIVE');
+            if (!hasRecentAlert) {
+              const alertTitle = packVoltage > 56.5 ? 'ESP32: 48V Overvoltage Exceeded' : packVoltage < 36.0 ? 'ESP32: Undervoltage Limit' : 'ESP32: Cell Spread High';
+              const newAlert: AlertItem = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString(),
+                title: alertTitle,
+                severity: 'CRITICAL',
+                status: 'ACTIVE',
+                type: 'ESP32 Hardware Node',
+                description: `ESP32 live telemetry reading: V=${packVoltage.toFixed(2)}V, ΔV=${(normalizedState.pack.max_imbalance * 1000).toFixed(0)}mV.`,
+                expected_range: '[36.0V - 54.6V], ΔV < 45mV',
+                observed_value: `${packVoltage.toFixed(2)}V`,
+                recommended_action: 'Reduce load or activate passive cell balancing.'
+              };
+              return [newAlert, ...prevAlerts.slice(0, 19)];
+            }
+            return prevAlerts;
+          });
+        }
+      },
+      (stats) => {
+        const mappedStatus: HardwareStatus = stats.status === 'SCANNING' ? 'CONNECTING' : stats.status;
+        if (stats.transport === 'BLE') {
+          setBleStatus(mappedStatus);
+          setBleStats({
+            packetsReceived: stats.packetsReceived,
+            lastPacketTimestamp: stats.lastPacketTimestamp,
+            packetRateHz: stats.packetRateHz,
+            latencyMs: stats.latencyMs
+          });
+          if (stats.status === 'CONNECTED' || stats.status === 'STREAMING') {
+            setHardwareSourceMode('BLUETOOTH');
+          } else if (hardwareSourceMode === 'BLUETOOTH' && stats.status === 'DISCONNECTED') {
+            setHardwareSourceMode('SIMULATOR');
+          }
+        } else if (stats.transport === 'WIFI_WS' || stats.transport === 'WIFI_HTTP') {
+          setWifiStatus(mappedStatus);
+          setWifiStats({
+            packetsReceived: stats.packetsReceived,
+            lastPacketTimestamp: stats.lastPacketTimestamp,
+            packetRateHz: stats.packetRateHz,
+            latencyMs: stats.latencyMs
+          });
+          if (stats.status === 'CONNECTED' || stats.status === 'STREAMING') {
+            setHardwareSourceMode('WIFI');
+          } else if (hardwareSourceMode === 'WIFI' && stats.status === 'DISCONNECTED') {
+            setHardwareSourceMode('SIMULATOR');
+          }
+        } else if (stats.transport === 'SERIAL_UART') {
+          setSerialStatus(mappedStatus);
+          setSerialStats({
+            packetsReceived: stats.packetsReceived,
+            lastPacketTimestamp: stats.lastPacketTimestamp,
+            packetRateHz: stats.packetRateHz,
+            latencyMs: stats.latencyMs
+          });
+          if (stats.status === 'CONNECTED' || stats.status === 'STREAMING') {
+            setHardwareSourceMode('SERIAL');
+          } else if (hardwareSourceMode === 'SERIAL' && stats.status === 'DISCONNECTED') {
             setHardwareSourceMode('SIMULATOR');
           }
         }

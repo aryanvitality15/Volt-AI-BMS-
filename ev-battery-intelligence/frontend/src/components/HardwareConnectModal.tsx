@@ -24,7 +24,8 @@ import {
   Upload,
   Brain,
   SlidersHorizontal,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Send
 } from 'lucide-react';
 import {
   bluetoothManager,
@@ -44,6 +45,12 @@ import {
   CustomSensorMapping
 } from '../services/accountStorageEngine';
 import { onlineMl } from '../services/onlineMlEngine';
+import {
+  esp32Bridge,
+  ESP32_DEFAULT_CONFIG,
+  VOLT_BMS_ESP32_FIRMWARE_INO,
+  ESP32TelemetryPayload
+} from '../services/esp32HardwareBridge';
 
 interface HardwareConnectModalProps {
   isOpen: boolean;
@@ -100,9 +107,14 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
   });
   const [mapperSaved, setMapperSaved] = useState<boolean>(false);
 
-  // Firmware copy state
-  const [selectedFirmware, setSelectedFirmware] = useState<'ESP32_BLE' | 'ESP32_WIFI_WEBSOCKET' | 'ESP32_WIFI_HTTP' | 'ESP32_USB_SERIAL'>('ESP32_BLE');
+  // Firmware selection state
+  const [selectedFirmware, setSelectedFirmware] = useState<'VOLTBMS_HARDWARE_NODE' | 'ESP32_BLE' | 'ESP32_WIFI_WEBSOCKET' | 'ESP32_WIFI_HTTP' | 'ESP32_USB_SERIAL'>('VOLTBMS_HARDWARE_NODE');
   const [copiedFirmware, setCopiedFirmware] = useState<boolean>(false);
+
+  // Bi-directional Command Console State
+  const [commandInput, setCommandInput] = useState<string>('PING');
+  const [commandFeedback, setCommandFeedback] = useState<string | null>(null);
+  const [isSendingCommand, setIsSendingCommand] = useState<boolean>(false);
 
   // Account Telemetry & ML Storage stats
   const [dbStats, setDbStats] = useState<{ telemetryPoints: number; hasCheckpoint: boolean; lastSaved: string | null }>({
@@ -231,33 +243,128 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
 
   // Handle Copy Firmware
   const handleCopyFirmware = () => {
-    const code = SAMPLE_FIRMWARE[selectedFirmware];
+    const code = selectedFirmware === 'VOLTBMS_HARDWARE_NODE'
+      ? VOLT_BMS_ESP32_FIRMWARE_INO
+      : SAMPLE_FIRMWARE[selectedFirmware as keyof typeof SAMPLE_FIRMWARE];
     navigator.clipboard.writeText(code);
     setCopiedFirmware(true);
     setTimeout(() => setCopiedFirmware(false), 2000);
   };
 
-  // Send Mock Packet for Instant Testing
-  const handleSendTestPacket = () => {
-    const mock = {
-      v: Number((25.5 + Math.random() * 0.4).toFixed(2)),
-      i: Number((13.8 + Math.random() * 2.0).toFixed(1)),
-      t: Number((26.2 + Math.random() * 1.5).toFixed(1)),
-      soc: Number((65.0 + Math.random() * 2.0).toFixed(1)),
-      cycle: 625,
-      c: [
-        Number((3.201 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.204 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.202 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.198 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.205 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.200 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.203 + (Math.random() - 0.5) * 0.01).toFixed(3)),
-        Number((3.202 + (Math.random() - 0.5) * 0.01).toFixed(3))
+  // Send Bi-directional Command to ESP32
+  const handleSendCommand = async (cmdToSend?: string) => {
+    const cmd = (cmdToSend !== undefined ? cmdToSend : commandInput).trim();
+    if (!cmd) return;
+    setIsSendingCommand(true);
+    try {
+      const ok = await esp32Bridge.sendCommandToESP32(cmd);
+      if (ok) {
+        setCommandFeedback(`Dispatched "${cmd}" to ESP32 successfully.`);
+      } else {
+        setCommandFeedback(`Queued command "${cmd}" (awaiting hardware channel).`);
+      }
+    } catch (err: any) {
+      setCommandFeedback(`Send failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsSendingCommand(false);
+      setTimeout(() => setCommandFeedback(null), 3500);
+    }
+  };
+
+  // 1-Click ESP32 Connections
+  const handle1ClickEsp32Ble = async () => {
+    setBleError(null);
+    try {
+      esp32Bridge.setAccountEmail(operatorEmail);
+      const ok = await esp32Bridge.connectBle(bleServiceUuid, bleCharUuid);
+      if (ok) onSelectMode('BLUETOOTH');
+    } catch (err: any) {
+      setBleError(err.message || 'Failed to connect to VoltBMS-ESP32.');
+    }
+  };
+
+  const handle1ClickEsp32HotspotWs = async () => {
+    setWifiError(null);
+    try {
+      esp32Bridge.setAccountEmail(operatorEmail);
+      const ok = await esp32Bridge.connectWifiWs(ESP32_DEFAULT_CONFIG.wifi.hotspotWsUrl);
+      if (ok) onSelectMode('WIFI');
+    } catch (err: any) {
+      setWifiError(err.message || 'Failed to connect to Hotspot WebSocket (ws://192.168.4.1:81).');
+    }
+  };
+
+  const handle1ClickEsp32RouterWs = async (routerUrl?: string) => {
+    setWifiError(null);
+    try {
+      esp32Bridge.setAccountEmail(operatorEmail);
+      const target = routerUrl || wifiUrl || ESP32_DEFAULT_CONFIG.wifi.defaultRouterWsUrl;
+      const ok = await esp32Bridge.connectWifiWs(target);
+      if (ok) onSelectMode('WIFI');
+    } catch (err: any) {
+      setWifiError(err.message || 'Failed to connect to Router WebSocket.');
+    }
+  };
+
+  const handle1ClickEsp32Http = async () => {
+    setWifiError(null);
+    try {
+      esp32Bridge.setAccountEmail(operatorEmail);
+      const ok = await esp32Bridge.connectWifiHttp(wifiUrl || ESP32_DEFAULT_CONFIG.wifi.hotspotHttpUrl, 100);
+      if (ok) onSelectMode('WIFI');
+    } catch (err: any) {
+      setWifiError(err.message || 'Failed to start ESP32 HTTP polling.');
+    }
+  };
+
+  const handle1ClickEsp32Serial = async () => {
+    setSerialError(null);
+    try {
+      esp32Bridge.setAccountEmail(operatorEmail);
+      const ok = await esp32Bridge.connectSerial(serialBaud || 115200);
+      if (ok) {
+        setLocalSerialStatus('STREAMING');
+        onSelectMode('SERIAL');
+      }
+    } catch (err: any) {
+      setSerialError(err.message || 'Failed to open ESP32 USB Serial port.');
+    }
+  };
+
+  // Send Exact ESP32 Node Payload (10Hz Real-Time Structure)
+  const handleSendExactEsp32Packet = () => {
+    const exactEsp32Packet: ESP32TelemetryPayload = {
+      id: "VOLT-ESP32-01",
+      ts: Date.now(),
+      seq: Math.floor(Math.random() * 9000) + 1000,
+      v: Number((48.20 + (Math.random() - 0.5) * 0.4).toFixed(2)),
+      i: Number((14.50 + (Math.random() - 0.5) * 1.5).toFixed(2)),
+      p: Number((698.9 + (Math.random() - 0.5) * 20.0).toFixed(1)),
+      temp: Number((31.40 + (Math.random() - 0.5) * 0.8).toFixed(2)),
+      soc: Number((88.50 + (Math.random() - 0.5) * 0.5).toFixed(2)),
+      soh: Number((96.40 + (Math.random() - 0.5) * 0.2).toFixed(2)),
+      rul: 1420,
+      bri: Number((12.4 + (Math.random() - 0.5) * 0.5).toFixed(1)),
+      ir: Number((18.20 + (Math.random() - 0.5) * 0.3).toFixed(2)),
+      dv: Number((8.0 + (Math.random() - 0.5) * 1.0).toFixed(1)),
+      cells: [
+        Number((3.652 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.648 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.655 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.650 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.649 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.653 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.647 + (Math.random() - 0.5) * 0.006).toFixed(3)),
+        Number((3.651 + (Math.random() - 0.5) * 0.006).toFixed(3))
       ]
     };
-    universalHardwareEngine.injectRawPacket(mock);
-    onInjectTestPacket(mock);
+    esp32Bridge.processEsp32Payload(exactEsp32Packet);
+    onInjectTestPacket(exactEsp32Packet);
+  };
+
+  // Send Mock Packet for Instant Testing
+  const handleSendTestPacket = () => {
+    handleSendExactEsp32Packet();
   };
 
   // Telemetry & ML Exports
@@ -371,6 +478,60 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
                 Switch to Simulator
               </button>
             )}
+          </div>
+
+          {/* ESP32 Quick Connect & Firmware Presets */}
+          <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-purple-950/40 border border-cyan-500/20 relative z-10">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-orbitron font-bold text-cyan-300 flex items-center gap-1.5">
+                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                <span>ESP32 HARDWARE NODE — 1-CLICK INSTANT PRESETS:</span>
+              </span>
+              <button
+                onClick={() => esp32Bridge.downloadFirmwareIno()}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[9px] font-mono transition shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                title="Download VoltBMS_Hardware_Node.ino for Arduino IDE"
+              >
+                <Download className="w-3 h-3 text-emerald-400" />
+                <span>Download .ino</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono">
+              <button
+                onClick={handle1ClickEsp32Ble}
+                disabled={!isBleSupported}
+                className="py-1.5 px-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 flex items-center justify-center gap-1.5 transition disabled:opacity-40"
+              >
+                <Bluetooth className="w-3 h-3 text-blue-400" />
+                <span>BLE: VoltBMS-ESP32</span>
+              </button>
+
+              <button
+                onClick={handle1ClickEsp32HotspotWs}
+                className="py-1.5 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 flex items-center justify-center gap-1.5 transition"
+              >
+                <Wifi className="w-3 h-3 text-emerald-400" />
+                <span>WS: 192.168.4.1:81</span>
+              </button>
+
+              <button
+                onClick={() => handle1ClickEsp32RouterWs()}
+                className="py-1.5 px-2 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-300 flex items-center justify-center gap-1.5 transition"
+              >
+                <Radio className="w-3 h-3 text-teal-400" />
+                <span>WS: Router 100:81</span>
+              </button>
+
+              <button
+                onClick={handle1ClickEsp32Serial}
+                disabled={!isSerialSupported}
+                className="py-1.5 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 flex items-center justify-center gap-1.5 transition disabled:opacity-40"
+              >
+                <Zap className="w-3 h-3 text-amber-400" />
+                <span>USB Serial 115200</span>
+              </button>
+            </div>
           </div>
 
           {/* Tab Navigation */}
@@ -979,58 +1140,143 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
             )}
 
             {/* ========================================================================= */}
-            {/* TAB 6: LIVE PACKET TERMINAL */}
+            {/* TAB 6: LIVE PACKET TERMINAL & BI-DIRECTIONAL COMMAND CONSOLE */}
             {/* ========================================================================= */}
             {activeTab === 'TERMINAL' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between text-xs font-mono">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                   <span className="text-slate-400 flex items-center gap-1.5">
                     <Terminal className="w-4 h-4 text-purple-400" />
-                    LIVE INCOMING HARDWARE PACKET STREAM
+                    LIVE HARDWARE TELEMETRY & COMMAND CONSOLE
                   </span>
-                  <button
-                    onClick={handleSendTestPacket}
-                    className="px-3 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-[10px] font-orbitron font-bold transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
-                  >
-                    <Zap className="w-3 h-3 text-purple-400" />
-                    INJECT MOCK TEST PACKET
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSendExactEsp32Packet}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[10px] font-orbitron font-bold transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                      title="Inject exact VoltBMS_Hardware_Node.ino JSON structure"
+                    >
+                      <Zap className="w-3 h-3 text-emerald-400" />
+                      INJECT ESP32 PACKET (10Hz)
+                    </button>
+                    <button
+                      onClick={handleSendTestPacket}
+                      className="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-300 text-[10px] font-orbitron font-bold transition flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="w-3 h-3 text-purple-400" />
+                      GENERIC MOCK
+                    </button>
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#040508] border border-white/[0.08] font-mono text-[11px] text-emerald-400 overflow-x-auto min-h-[220px] max-h-[340px] shadow-inner custom-scrollbar">
+                {/* Bi-directional Command Dispatch Console */}
+                <div className="p-3.5 rounded-xl bg-[#07080e]/95 border border-purple-500/25 space-y-2">
+                  <div className="flex items-center justify-between text-[10px] font-mono">
+                    <span className="text-purple-300 font-orbitron font-bold flex items-center gap-1.5">
+                      <Send className="w-3 h-3 text-purple-400" />
+                      BI-DIRECTIONAL COMMAND CONSOLE (BROWSER ➔ ESP32)
+                    </span>
+                    <span className="text-slate-400">Routes over active BLE RX, WebSocket, or Serial</span>
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSendCommand();
+                    }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={commandInput}
+                      onChange={(e) => setCommandInput(e.target.value)}
+                      placeholder="Enter command (e.g. PING, CALIBRATE, RESET, BAL_ON)..."
+                      className="flex-1 bg-[#050609] border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs font-mono text-purple-200 placeholder-slate-500 focus:outline-none focus:border-purple-400"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSendingCommand}
+                      className="px-4 py-1.5 rounded-lg bg-purple-600/30 hover:bg-purple-600/40 text-purple-200 border border-purple-500/40 font-orbitron font-bold text-xs tracking-wider transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(168,85,247,0.25)] disabled:opacity-50"
+                    >
+                      <Send className="w-3 h-3" />
+                      <span>{isSendingCommand ? 'SENDING...' : 'DISPATCH'}</span>
+                    </button>
+                  </form>
+
+                  {/* Command Quick Chips */}
+                  <div className="flex items-center gap-1.5 pt-1 overflow-x-auto text-[9.5px] font-mono text-slate-400">
+                    <span className="text-slate-500 shrink-0">Presets:</span>
+                    {['PING', 'STATUS', 'CALIBRATE', 'BAL_START', 'BAL_STOP', 'RESET'].map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => {
+                          setCommandInput(chip);
+                          handleSendCommand(chip);
+                        }}
+                        className="px-2 py-0.5 rounded bg-white/[0.04] hover:bg-purple-500/20 hover:text-purple-300 border border-white/[0.08] transition shrink-0"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+
+                  {commandFeedback && (
+                    <div className="p-2 rounded bg-purple-500/10 border border-purple-500/25 text-[10px] font-mono text-purple-300 animate-fadeIn">
+                      {commandFeedback}
+                    </div>
+                  )}
+                </div>
+
+                {/* Raw Terminal Output */}
+                <div className="p-4 rounded-xl bg-[#040508] border border-white/[0.08] font-mono text-[11px] text-emerald-400 overflow-x-auto min-h-[200px] max-h-[300px] shadow-inner custom-scrollbar">
                   {lastRawPacket ? (
                     <pre className="whitespace-pre-wrap leading-relaxed">
-                      {JSON.stringify(lastRawPacket, null, 2)}
+                      {typeof lastRawPacket === 'string'
+                        ? lastRawPacket
+                        : JSON.stringify(lastRawPacket, null, 2)}
                     </pre>
                   ) : (
-                    <div className="text-slate-500 py-16 text-center space-y-2">
+                    <div className="text-slate-500 py-12 text-center space-y-2">
                       <Radio className="w-8 h-8 text-slate-600 mx-auto animate-pulse" />
                       <p>Awaiting live packets from paired BLE, Wi-Fi, or USB Serial hardware...</p>
                       <p className="text-[10px] text-slate-600">
-                        Click "Inject Mock Test Packet" above to test the normalizer and charts right now.
+                        Click "INJECT ESP32 PACKET (10Hz)" above to test the full decoder and 3D cell updates immediately.
                       </p>
                     </div>
                   )}
                 </div>
 
                 <div className="p-3 rounded-xl bg-[#07080e]/80 border border-white/[0.06] text-[10px] font-mono text-slate-400 space-y-1">
-                  <span className="text-white font-bold block">ACCEPTED HARDWARE SCHEMAS:</span>
-                  <span>• Minimal JSON: <code>{"{\"v\": 25.6, \"i\": 14.5, \"t\": 26.5, \"c\": [3.20, 3.21, 3.20, 3.20, 3.21, 3.20, 3.20, 3.21]}"}</code></span>
+                  <span className="text-white font-bold block">EXACT ESP32 FIRMWARE PAYLOAD MAPPER:</span>
+                  <span>• Node ID: <code>"id" ("VOLT-ESP32-01")</code> | Seq: <code>"seq"</code> | Uptime: <code>"ts"</code></span>
                   <br />
-                  <span>• Comma-Separated (CSV): <code>{"25.64,14.20,26.40,66.2,3.205,3.201,3.208,3.203"}</code></span>
+                  <span>• Voltage: <code>"v" (V)</code> | Current: <code>"i" (A)</code> | Power: <code>"p" (W)</code> | Temp: <code>"temp" (°C)</code></span>
                   <br />
-                  <span>• DALY BMS Hex Frame: <code>0xA5 0x40 0x90 0x08 ... 0xCS</code></span>
+                  <span>• AI & Risk: <code>"soc" (%)</code> | <code>"soh" (%)</code> | <code>"rul" (cycles)</code> | <code>"bri" (0-100)</code> | <code>"ir" (mΩ)</code> | <code>"dv" (mV)</code></span>
+                  <br />
+                  <span>• Cells: <code>"cells": [c1, c2, c3, c4, c5, c6, c7, c8]</code></span>
                 </div>
               </div>
             )}
 
             {/* ========================================================================= */}
-            {/* TAB 7: SAMPLE FIRMWARE (.INO) */}
+            {/* TAB 7: SAMPLE FIRMWARE (.INO) & 1-CLICK DOWNLOAD */}
             {/* ========================================================================= */}
             {activeTab === 'FIRMWARE' && (
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5 text-xs font-orbitron font-bold flex-wrap">
+                    <button
+                      onClick={() => setSelectedFirmware('VOLTBMS_HARDWARE_NODE')}
+                      className={`px-3 py-1.5 rounded-lg border text-[10px] transition flex items-center gap-1.5 ${
+                        selectedFirmware === 'VOLTBMS_HARDWARE_NODE'
+                          ? 'bg-emerald-600/25 text-emerald-300 border-emerald-500/50 shadow-sm'
+                          : 'bg-[#050609] text-slate-400 border-white/[0.06]'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>VoltBMS_Hardware_Node.ino (Universal)</span>
+                    </button>
                     <button
                       onClick={() => setSelectedFirmware('ESP32_BLE')}
                       className={`px-3 py-1.5 rounded-lg border text-[10px] transition ${
@@ -1039,17 +1285,17 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
                           : 'bg-[#050609] text-slate-400 border-white/[0.06]'
                       }`}
                     >
-                      ESP32 BLE (.ino)
+                      BLE Only (.ino)
                     </button>
                     <button
                       onClick={() => setSelectedFirmware('ESP32_WIFI_WEBSOCKET')}
                       className={`px-3 py-1.5 rounded-lg border text-[10px] transition ${
                         selectedFirmware === 'ESP32_WIFI_WEBSOCKET'
-                          ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                          ? 'bg-teal-600/20 text-teal-300 border-teal-500/40 shadow-sm'
                           : 'bg-[#050609] text-slate-400 border-white/[0.06]'
                       }`}
                     >
-                      Wi-Fi WebSocket (.ino)
+                      WebSocket Only (.ino)
                     </button>
                     <button
                       onClick={() => setSelectedFirmware('ESP32_USB_SERIAL')}
@@ -1059,47 +1305,54 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
                           : 'bg-[#050609] text-slate-400 border-white/[0.06]'
                       }`}
                     >
-                      USB Serial UART (.ino)
-                    </button>
-                    <button
-                      onClick={() => setSelectedFirmware('ESP32_WIFI_HTTP')}
-                      className={`px-3 py-1.5 rounded-lg border text-[10px] transition ${
-                        selectedFirmware === 'ESP32_WIFI_HTTP'
-                          ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 shadow-sm'
-                          : 'bg-[#050609] text-slate-400 border-white/[0.06]'
-                      }`}
-                    >
-                      Wi-Fi HTTP (.ino)
+                      USB Serial (.ino)
                     </button>
                   </div>
 
-                  <button
-                    onClick={handleCopyFirmware}
-                    className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.08] text-[10px] font-mono flex items-center gap-1.5 transition"
-                  >
-                    {copiedFirmware ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400 font-bold">COPIED TO CLIPBOARD!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                        <span>COPY FIRMWARE CODE</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => esp32Bridge.downloadFirmwareIno()}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-mono flex items-center gap-1.5 transition shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                      title="Download complete VoltBMS_Hardware_Node.ino file"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>DOWNLOAD .INO</span>
+                    </button>
+
+                    <button
+                      onClick={handleCopyFirmware}
+                      className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.08] text-[10px] font-mono flex items-center gap-1.5 transition"
+                    >
+                      {copiedFirmware ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400 font-bold">COPIED!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>COPY CODE</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-4 rounded-xl bg-[#040508] border border-white/[0.08] font-mono text-[10.5px] text-slate-300 overflow-x-auto max-h-[340px] shadow-inner custom-scrollbar">
                   <pre className="whitespace-pre leading-relaxed">
-                    {SAMPLE_FIRMWARE[selectedFirmware]}
+                    {selectedFirmware === 'VOLTBMS_HARDWARE_NODE'
+                      ? VOLT_BMS_ESP32_FIRMWARE_INO
+                      : SAMPLE_FIRMWARE[selectedFirmware as keyof typeof SAMPLE_FIRMWARE]}
                   </pre>
                 </div>
 
-                <div className="p-3 rounded-xl bg-[#07080e]/90 border border-white/[0.06] text-[10px] font-mono text-slate-400">
-                  <strong className="text-cyan-400 block mb-0.5">Quick Setup Guide:</strong>
-                  1. Paste this code into Arduino IDE. 2. Select board "ESP32 Dev Module". 3. Flash over USB. 4. Open this website and click "Pair Bluetooth BMS", "Start Wi-Fi Stream", or "Select USB Serial Port".
+                <div className="p-3 rounded-xl bg-[#07080e]/90 border border-white/[0.06] text-[10px] font-mono text-slate-400 space-y-1">
+                  <strong className="text-cyan-400 block mb-0.5">Quick Setup Guide (Arduino IDE):</strong>
+                  <span>1. Install ESP32 Board package in Arduino IDE: <code>Tools &gt; Board &gt; Boards Manager &gt; esp32 by Espressif</code></span>
+                  <br />
+                  <span>2. Install WebSockets library: <code>Tools &gt; Manage Libraries &gt; "WebSockets" by Markus Sattler</code></span>
+                  <br />
+                  <span>3. Click <strong>"DOWNLOAD .INO"</strong> above, open in Arduino IDE, select <strong>"ESP32 Dev Module"</strong>, and upload!</span>
                 </div>
               </div>
             )}
