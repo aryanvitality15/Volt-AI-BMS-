@@ -95,7 +95,7 @@ export const AnomalyDetectionView: React.FC<AnomalyDetectionViewProps> = ({ data
             <ShieldAlert className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-orbitron font-bold uppercase tracking-wider text-white">
+            <h2 className="text-base font-orbitron font-bold uppercase tracking-wider text-gradient-display">
               BATTERY ANOMALY DETECTION & DIAGNOSTIC CENTER
             </h2>
             <span className="text-[10px] text-slate-400 font-mono">
@@ -105,20 +105,20 @@ export const AnomalyDetectionView: React.FC<AnomalyDetectionViewProps> = ({ data
         </div>
 
         {/* Severity Badges (PDF Page 33) */}
-        <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+        <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono tabular-nums">
+          <div className="px-3 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-slate-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
             <span>TOTAL ANOMALIES: </span>
             <strong className="text-white font-bold">{alerts.length}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300">
+          <div className="px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]">
             <span>CRITICAL: </span>
             <strong className="text-rose-400 font-bold">{criticalCount}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300">
+          <div className="px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
             <span>WARNING: </span>
             <strong className="text-amber-400 font-bold">{warningCount}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+          <div className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
             <span>RESOLVED: </span>
             <strong className="text-emerald-400 font-bold">{resolvedCount}</strong>
           </div>
@@ -126,7 +126,7 @@ export const AnomalyDetectionView: React.FC<AnomalyDetectionViewProps> = ({ data
       </div>
 
       {/* GRAPH 26: ANOMALY SCATTER PLOT (PDF Page 34) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="dark-gradient-card-rose rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/25 flex items-center justify-center">

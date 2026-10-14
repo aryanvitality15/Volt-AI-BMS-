@@ -91,8 +91,8 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
-        style={{ background: 'rgba(5, 10, 21, 0.85)' }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xl"
+        style={{ background: 'rgba(5, 5, 8, 0.85)' }}
         onClick={onClose}
       >
         <motion.div
@@ -100,29 +100,25 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.92, opacity: 0, y: 20 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-xl glass-panel-elevated rounded-2xl p-6 overflow-hidden hud-corners"
-          style={{ boxShadow: '0 0 60px rgba(59, 130, 246, 0.08), 0 20px 60px rgba(0, 0, 0, 0.5)' }}
+          className="relative w-full max-w-xl bg-[#0a0b10]/95 backdrop-blur-2xl rounded-2xl p-6 overflow-hidden border border-white/[0.1] shadow-[0_25px_80px_rgba(0,0,0,0.85)]"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="absolute inset-0 data-stream-bg pointer-events-none" />
-          <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
-
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-blue-500/10 relative z-10">
+          <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] relative z-10">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/20">
                 <Sliders className="w-4 h-4" />
               </div>
               <div>
                 <h3 className="text-sm font-orbitron font-bold text-white tracking-wide">WHAT-IF ENGINE</h3>
-                <p className="text-[9px] text-slate-500 font-mono">Stress Test & Degradation Projection</p>
+                <p className="text-[9px] text-slate-400 font-mono">Stress Test & Degradation Projection</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition border border-slate-700/50"
+              className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-slate-400 hover:text-white transition border border-white/[0.08]"
             >
               <X className="w-4 h-4" />
             </motion.button>
@@ -132,7 +128,7 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
           <div className="py-4 space-y-4 relative z-10">
             {/* Mode Toggle */}
             <div>
-              <label className="text-[9px] font-orbitron font-semibold uppercase tracking-[0.15em] text-slate-500 block mb-2">
+              <label className="text-[9px] font-orbitron font-semibold uppercase tracking-[0.15em] text-slate-400 block mb-2">
                 OPERATION MODE
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -143,10 +139,9 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
                   onClick={() => { setMode('CHARGING'); setCurrent(-25.0); }}
                   className={`py-2.5 text-[10px] font-orbitron font-bold rounded-xl border transition-all ${
                     mode === 'CHARGING'
-                      ? 'bg-blue-600/15 border-blue-500/40 text-blue-400'
-                      : 'bg-slate-800/30 border-slate-700/30 text-slate-500'
+                      ? 'bg-blue-600/15 border-blue-500/40 text-blue-400 shadow-[inset_0_1px_0_0_rgba(59,130,246,0.2)]'
+                      : 'bg-[#07080e]/90 border-white/[0.06] text-slate-400'
                   }`}
-                  style={mode === 'CHARGING' ? { boxShadow: '0 0 15px rgba(59, 130, 246, 0.1)' } : {}}
                 >
                   <Zap className="w-3 h-3 inline mr-1" />
                   CHARGE
@@ -158,10 +153,9 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
                   onClick={() => { setMode('DISCHARGING'); setCurrent(40.0); }}
                   className={`py-2.5 text-[10px] font-orbitron font-bold rounded-xl border transition-all ${
                     mode === 'DISCHARGING'
-                      ? 'bg-amber-600/15 border-amber-500/40 text-amber-400'
-                      : 'bg-slate-800/30 border-slate-700/30 text-slate-500'
+                      ? 'bg-amber-600/15 border-amber-500/40 text-amber-400 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.2)]'
+                      : 'bg-[#07080e]/90 border-white/[0.06] text-slate-400'
                   }`}
-                  style={mode === 'DISCHARGING' ? { boxShadow: '0 0 15px rgba(245, 158, 11, 0.1)' } : {}}
                 >
                   <Flame className="w-3 h-3 inline mr-1" />
                   DISCHARGE
@@ -176,9 +170,9 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
               { label: 'Internal Resistance', value: resistance, setValue: setResistance, min: 25, max: 65, step: 0.5, unit: 'mΩ', icon: <CircuitBoard className="w-3 h-3 text-purple-400" /> }
             ].map((slider) => (
               <div key={slider.label}>
-                <div className="flex justify-between text-[10px] text-slate-400 mb-1.5">
-                  <span className="flex items-center gap-1.5 font-mono">{slider.icon} {slider.label}</span>
-                  <strong className="font-mono text-white">{slider.value} {slider.unit}</strong>
+                <div className="flex justify-between text-[10px] text-slate-300 mb-1.5 font-mono tabular-nums">
+                  <span className="flex items-center gap-1.5">{slider.icon} {slider.label}</span>
+                  <strong className="text-white">{slider.value} {slider.unit}</strong>
                 </div>
                 <input
                   type="range"
@@ -198,12 +192,7 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
               whileTap={{ scale: 0.98 }}
               onClick={handleSimulate}
               disabled={loading}
-              className="w-full py-3 rounded-xl text-white font-orbitron font-bold text-[10px] tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 border"
-              style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(99, 102, 241, 0.25) 100%)',
-                borderColor: 'rgba(59, 130, 246, 0.3)',
-                boxShadow: '0 0 25px rgba(59, 130, 246, 0.15), 0 4px 15px rgba(0, 0, 0, 0.3)'
-              }}
+              className="w-full py-3 rounded-xl text-white font-orbitron font-bold text-[10px] tracking-[0.2em] uppercase transition-all flex items-center justify-center gap-2 border border-white/[0.12] bg-gradient-to-r from-blue-600/30 to-indigo-600/30 shadow-[0_0_25px_rgba(59,130,246,0.18)]"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               {loading ? 'EVALUATING...' : 'RUN SIMULATION'}
@@ -216,25 +205,24 @@ export const WhatIfModal: React.FC<WhatIfModalProps> = ({ isOpen, onClose }) => 
                   initial={{ opacity: 0, y: 10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: 'auto' }}
                   exit={{ opacity: 0, y: 10, height: 0 }}
-                  className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/30 space-y-3 overflow-hidden"
-                  style={{ boxShadow: '0 0 20px rgba(16, 185, 129, 0.05)' }}
+                  className="p-4 rounded-xl dark-gradient-card-emerald border border-white/[0.08] space-y-3 overflow-hidden"
                 >
-                  <h4 className="text-[9px] font-orbitron font-bold text-emerald-400/70 uppercase tracking-[0.15em]">
+                  <h4 className="text-[9px] font-orbitron font-bold text-emerald-400 uppercase tracking-[0.15em]">
                     SIMULATED OUTCOME
                   </h4>
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-3 gap-2 text-center font-mono tabular-nums">
                     {[
                       { label: 'V-SAG', value: `${result.voltage_sag?.toFixed(3)}V`, color: 'text-cyan-400' },
                       { label: 'TEMP RISE', value: `+${result.temperature_rise?.toFixed(1)}°C`, color: 'text-amber-400' },
                       { label: 'PROJ BRI', value: `${result.projected_bri?.toFixed(1)}/100`, color: 'text-rose-400' }
                     ].map((item) => (
-                      <div key={item.label} className="p-2.5 rounded-xl bg-slate-950/40 border border-slate-800/50">
-                        <span className="text-[8px] text-slate-500 block font-orbitron tracking-wider">{item.label}</span>
-                        <span className={`text-sm font-bold font-mono ${item.color}`}>{item.value}</span>
+                      <div key={item.label} className="p-2.5 rounded-xl bg-[#050609]/90 border border-white/[0.06]">
+                        <span className="text-[8px] text-slate-400 block font-orbitron tracking-wider">{item.label}</span>
+                        <span className={`text-sm font-bold ${item.color}`}>{item.value}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="p-2 rounded-lg bg-slate-950/30 text-[10px] text-slate-300 font-mono">
+                  <div className="p-2 rounded-lg bg-[#050609]/80 border border-white/[0.06] text-[10px] text-slate-200 font-mono">
                     Assessment: <strong>{result.assessment || 'Acceptable operational margin.'}</strong>
                   </div>
                 </motion.div>

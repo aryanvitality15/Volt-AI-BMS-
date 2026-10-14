@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,165 +6,286 @@
 
 :root {
   color-scheme: dark;
+  --bg-obsidian: #050508;
+  --card-surface: rgba(10, 11, 16, 0.82);
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-border-hover: rgba(255, 255, 255, 0.20);
   --neon-emerald: #10b981;
   --neon-cyan: #22d3ee;
   --neon-blue: #3b82f6;
   --neon-purple: #a855f7;
   --neon-rose: #f43f5e;
-  --bg-deep: #050a15;
-  --bg-panel: rgba(10, 20, 38, 0.75);
-  --border-glow: rgba(16, 185, 129, 0.15);
 }
 
 body {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-deep);
+  background-color: var(--bg-obsidian);
   color: #f1f5f9;
   overflow-x: hidden;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 0px,
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 80px
+  );
 }
 
-/* ─── Futuristic Glassmorphism ─── */
+/* ─── Base Vertical Pinstripe Grid ─── */
+.pinstripe-grid {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.02) 0px,
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 80px
+  );
+}
+
+/* ─── Signature Smoked Obsidian Glass (Default Card Architecture) ─── */
 .glass-panel {
-  background: linear-gradient(135deg, rgba(10, 20, 40, 0.8) 0%, rgba(15, 28, 52, 0.65) 100%);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid rgba(16, 185, 129, 0.1);
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(99, 102, 241, 0.08) 0%, rgba(6, 182, 212, 0.04) 45%, transparent 75%),
+    rgba(10, 11, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
   box-shadow:
-    0 0 1px rgba(16, 185, 129, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
-  border-color: rgba(16, 185, 129, 0.25);
+  border-color: rgba(255, 255, 255, 0.20);
   box-shadow:
-    0 0 20px rgba(16, 185, 129, 0.08),
-    0 0 1px rgba(16, 185, 129, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 25px 50px -12px rgba(0, 0, 0, 0.85);
 }
 
 .glass-panel-elevated {
-  background: linear-gradient(145deg, rgba(15, 25, 50, 0.9) 0%, rgba(20, 35, 65, 0.75) 100%);
-  backdrop-filter: blur(24px) saturate(1.5);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(99, 102, 241, 0.12) 0%, rgba(6, 182, 212, 0.05) 45%, transparent 75%),
+    rgba(8, 9, 14, 0.92);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 1rem;
   box-shadow:
-    0 20px 60px -15px rgba(0, 0, 0, 0.6),
-    0 0 1px rgba(16, 185, 129, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    0 25px 60px -10px rgba(0, 0, 0, 0.85);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── Neon Glow Borders ─── */
-.neon-border-emerald {
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.1), inset 0 0 15px rgba(16, 185, 129, 0.05);
+/* ─── Luminous Bottom-Edge Aura Cards (Swatch Families) ─── */
+
+/* 1. SOH / Healthy Telemetry (Swatch #07 / #27: Emerald-Cyan Horizon Glow) */
+.dark-gradient-card-emerald {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(16, 185, 129, 0.22) 0%, rgba(6, 182, 212, 0.08) 45%, transparent 75%),
+    rgba(10, 11, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-gradient-card-emerald:hover {
+  border-color: rgba(16, 185, 129, 0.30);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 25px 50px -12px rgba(16, 185, 129, 0.15);
 }
 
-.neon-border-cyan {
-  border: 1px solid rgba(34, 211, 238, 0.3);
-  box-shadow: 0 0 15px rgba(34, 211, 238, 0.1), inset 0 0 15px rgba(34, 211, 238, 0.05);
+/* 2. RUL / Predictive AI (Swatch #03 / #10: Royal Indigo-Magenta Horizon Glow) */
+.dark-gradient-card-indigo {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(99, 102, 241, 0.24) 0%, rgba(236, 72, 153, 0.10) 45%, transparent 75%),
+    rgba(10, 11, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-gradient-card-indigo:hover {
+  border-color: rgba(99, 102, 241, 0.30);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 25px 50px -12px rgba(99, 102, 241, 0.15);
 }
 
-.neon-border-rose {
-  border: 1px solid rgba(244, 63, 94, 0.3);
-  box-shadow: 0 0 15px rgba(244, 63, 94, 0.1), inset 0 0 15px rgba(244, 63, 94, 0.05);
+/* 3. MQTT Pipeline / Thermal Warning (Swatch #05 / #13: Warm Amber-Sunset Orange Glow) */
+.dark-gradient-card-amber {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(245, 158, 11, 0.22) 0%, rgba(239, 68, 68, 0.08) 45%, transparent 75%),
+    rgba(10, 11, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-gradient-card-amber:hover {
+  border-color: rgba(245, 158, 11, 0.30);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 25px 50px -12px rgba(245, 158, 11, 0.15);
 }
 
-/* ─── Futuristic Grid Background ─── */
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+/* 4. BRI / Critical Risk (Swatch #04 / #19: Crimson-Rose Horizon Glow) */
+.dark-gradient-card-rose {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(244, 63, 94, 0.25) 0%, rgba(139, 92, 246, 0.08) 45%, transparent 75%),
+    rgba(10, 11, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-gradient-card-rose:hover {
+  border-color: rgba(244, 63, 94, 0.30);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 25px 50px -12px rgba(244, 63, 94, 0.15);
 }
 
-/* ─── HUD Corners ─── */
-.hud-corners {
+/* 5. Electrical / Cyan Horizon Glow */
+.dark-gradient-card-cyan {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(6, 182, 212, 0.22) 0%, rgba(59, 130, 246, 0.08) 45%, transparent 75%),
+    rgba(10, 11, 16, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 20px 40px -15px rgba(0, 0, 0, 0.7);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dark-gradient-card-cyan:hover {
+  border-color: rgba(6, 182, 212, 0.30);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 25px 50px -12px rgba(6, 182, 212, 0.15);
+}
+
+/* ─── 3D BMS Bezel Container ─── */
+.bms-3d-bezel {
+  background: rgba(4, 5, 8, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.85), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
   position: relative;
 }
-.hud-corners::before,
-.hud-corners::after {
+.bms-3d-bezel::after {
   content: '';
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border-color: rgba(16, 185, 129, 0.5);
-  pointer-events: none;
-}
-.hud-corners::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid;
-  border-left: 2px solid;
-}
-.hud-corners::after {
-  bottom: -1px;
-  right: -1px;
-  border-bottom: 2px solid;
-  border-right: 2px solid;
-}
-
-/* ─── Scanline Effect ─── */
-.scanline {
-  position: relative;
-  overflow: hidden;
-}
-.scanline::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent);
-  animation: scanline-move 4s linear infinite;
+  inset: 0;
+  background: radial-gradient(circle at 50% 65%, rgba(99, 102, 241, 0.12) 0%, rgba(6, 182, 212, 0.06) 40%, transparent 75%);
   pointer-events: none;
 }
 
-@keyframes scanline-move {
-  0% { top: -2px; }
-  100% { top: 100%; }
-}
-
-/* ─── Orbitron Headings ─── */
+/* ─── Typography & Display Metallic Gradients ─── */
 .font-orbitron {
   font-family: 'Orbitron', monospace, sans-serif;
 }
 
-/* ─── Holographic Shimmer ─── */
-.holo-shimmer {
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(16, 185, 129, 0.06) 45%,
-    rgba(34, 211, 238, 0.08) 50%,
-    rgba(16, 185, 129, 0.06) 55%,
-    transparent 60%
-  );
-  background-size: 250% 100%;
-  animation: shimmer-slide 6s ease-in-out infinite;
+.text-gradient-display {
+  background: linear-gradient(135deg, #a5b4fc 0%, #bae6fd 50%, #fde68a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-@keyframes shimmer-slide {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #34d399 0%, #6ee7b7 50%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* ─── Scrollbar ─── */
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 50%, #bae6fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-amber {
+  background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 50%, #fef3c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-rose {
+  background: linear-gradient(135deg, #fb7185 0%, #fda4af 50%, #ffe4e6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ─── Historical Telemetry Table Styling ─── */
+.obsidian-table thead {
+  background: rgba(8, 9, 14, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.obsidian-table tbody tr {
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background-color 0.15s ease;
+}
+.obsidian-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Recharts Global Dark Theming ─── */
+.recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.04) !important;
+}
+.recharts-tooltip-cursor {
+  stroke: rgba(255, 255, 255, 0.12) !important;
+  stroke-dasharray: 4 4;
+}
+
+/* ─── Sleek Obsidian Scrollbars ─── */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-deep);
+  background: #050508;
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #10b981 0%, #0d9488 100%);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* ─── Animations ─── */
@@ -195,61 +316,7 @@ body {
   animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.15); }
-  50% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.3), 0 0 50px rgba(16, 185, 129, 0.1); }
-}
-
-.animate-glow-pulse {
-  animation: glow-pulse 3s ease-in-out infinite;
-}
-
-@keyframes neon-flicker {
-  0%, 100% { opacity: 1; }
-  92% { opacity: 1; }
-  93% { opacity: 0.7; }
-  94% { opacity: 1; }
-  96% { opacity: 0.8; }
-  97% { opacity: 1; }
-}
-
-.animate-neon-flicker {
-  animation: neon-flicker 4s ease-in-out infinite;
-}
-
-@keyframes data-stream {
-  from { background-position: 0 0; }
-  to { background-position: 0 -100px; }
-}
-
-.data-stream-bg {
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 4px,
-    rgba(16, 185, 129, 0.02) 4px,
-    rgba(16, 185, 129, 0.02) 5px
-  );
-  animation: data-stream 3s linear infinite;
-}
-
-/* ─── Progress bars with glow ─── */
-.progress-bar-glow {
-  position: relative;
-}
-.progress-bar-glow::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: -2px;
-  bottom: -2px;
-  width: 12px;
-  border-radius: 50%;
-  background: inherit;
-  filter: blur(6px);
-}
-
-/* ─── Staggered card entrance ─── */
+/* Staggered card entrance */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.1s; }
 .stagger-3 { animation-delay: 0.15s; }
@@ -259,12 +326,12 @@ body {
 .stagger-7 { animation-delay: 0.35s; }
 .stagger-8 { animation-delay: 0.4s; }
 
-/* ─── Range input styling ─── */
+/* Range input styling */
 input[type="range"] {
   -webkit-appearance: none;
   height: 4px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, #10b981, #0d9488);
+  background: rgba(255, 255, 255, 0.12);
   outline: none;
 }
 input[type="range"]::-webkit-slider-thumb {
@@ -272,17 +339,17 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+  background: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
   cursor: pointer;
-  border: 2px solid #050a15;
+  border: 2px solid #050508;
 }
 
-/* ─── Select dropdown ─── */
+/* Select dropdown */
 select {
   background-image: none;
 }
 select option {
-  background-color: #0a1628;
+  background-color: #0a0b10;
   color: #e2e8f0;
 }

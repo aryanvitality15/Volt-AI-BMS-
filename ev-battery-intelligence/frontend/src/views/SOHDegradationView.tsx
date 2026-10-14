@@ -100,13 +100,13 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-[#07080e]/92 border border-white/[0.07] shadow-xl backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400">
             <TrendingDown className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-orbitron font-bold uppercase tracking-wider text-white">
+            <h2 className="text-base font-orbitron font-bold uppercase tracking-wider text-gradient-display">
               SOH ESTIMATION & DEGRADATION ANALYSIS
             </h2>
             <span className="text-[10px] text-slate-400 font-mono">
@@ -115,12 +115,12 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] font-mono">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+        <div className="flex items-center gap-2 text-[10px] font-mono tabular-nums">
+          <div className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-slate-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
             <span>CURRENT SOH: </span>
             <strong className="text-emerald-400 font-bold">{currentSoh.toFixed(1)}%</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+          <div className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-slate-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
             <span>CAPACITY LOSS: </span>
             <strong className="text-rose-400 font-bold">{capacityFade.toFixed(1)}%</strong>
           </div>
@@ -128,7 +128,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
       </div>
 
       {/* GRAPH 1: SOH (%) VS CYCLE NUMBER (PDF Page 22) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="dark-gradient-card-emerald rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -162,17 +162,17 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
                   <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="cycle" stroke="#64748b" tick={{ fontSize: 10, fill: '#64748b' }} unit=" cyc" />
               <YAxis domain={[60, 100]} stroke="#64748b" tick={{ fontSize: 10, fill: '#64748b' }} unit="%" />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
               />
               <Legend wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace' }} />
               <ReferenceLine y={70} stroke="#ef4444" strokeDasharray="4 4" label={{ value: 'End-of-Life (70%)', fill: '#ef4444', fontSize: 10 }} />
               <ReferenceLine x={currentCycle} stroke="#10b981" strokeDasharray="3 3" label={{ value: `Current (${currentCycle})`, fill: '#10b981', fontSize: 10 }} />
               <Area type="monotone" dataKey="upper_bound" stroke="none" fillOpacity={1} fill="url(#sohUncertainty)" name="Upper Confidence (95%)" />
-              <Area type="monotone" dataKey="lower_bound" stroke="none" fill="#0f172a" name="Lower Confidence (95%)" />
+              <Area type="monotone" dataKey="lower_bound" stroke="none" fill="#050508" name="Lower Confidence (95%)" />
               <Line type="monotone" dataKey="actual_soh" stroke="#10b981" strokeWidth={3} dot={{ r: 3 }} name="Actual Measured SOH" connectNulls={false} />
               <Line type="monotone" dataKey="predicted_soh" stroke="#38bdf8" strokeWidth={2.5} strokeDasharray="5 5" dot={false} name="ML Predicted SOH" />
             </AreaChart>
@@ -183,7 +183,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
       {/* GRAPH 2: SOH VS CALENDAR TIME & GRAPH 12: CAPACITY FADE (PDF Pages 23, 29) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 2: SOH vs Calendar Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="dark-gradient-card-cyan rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center">
@@ -227,7 +227,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
         </div>
 
         {/* GRAPH 12: Cycle Aging & Capacity Fade */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="dark-gradient-card-rose rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/25 flex items-center justify-center">
@@ -242,7 +242,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">
+            <span className="text-[10px] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
               Loss: {capacityFade.toFixed(1)}%
             </span>
           </div>
@@ -252,15 +252,16 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
               <AreaChart data={calendarData}>
                 <defs>
                   <linearGradient id="capArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.35} />
+                    <stop offset="60%" stopColor="#f43f5e" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="#f43f5e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10, fill: '#64748b' }} />
                 <YAxis domain={[30, 42]} stroke="#64748b" tick={{ fontSize: 10, fill: '#64748b' }} unit="Ah" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
                 />
                 <Area type="monotone" dataKey="capacity" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#capArea)" name="Capacity (Ah)" />
               </AreaChart>
@@ -272,7 +273,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
       {/* GRAPH 13: INTERNAL RESISTANCE GROWTH & GRAPH 14: V-SOC CURVES (PDF Pages 29, 30) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 13: Resistance Growth */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="dark-gradient-card-indigo rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center">

@@ -36,12 +36,13 @@ interface SelfLearningModalProps {
 }
 
 const TOOLTIP_STYLE = {
-  backgroundColor: 'rgba(5, 10, 21, 0.95)',
-  borderColor: 'rgba(16, 185, 129, 0.2)',
+  backgroundColor: '#0a0b10',
+  borderColor: 'rgba(255, 255, 255, 0.1)',
   borderRadius: '12px',
   fontSize: '11px',
-  boxShadow: '0 0 20px rgba(16, 185, 129, 0.1)',
-  fontFamily: 'JetBrains Mono, monospace'
+  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
+  fontFamily: 'JetBrains Mono, monospace',
+  backdropFilter: 'blur(16px)'
 };
 
 export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
@@ -135,8 +136,8 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
-        style={{ background: 'rgba(5, 10, 21, 0.85)' }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xl"
+        style={{ background: 'rgba(5, 5, 8, 0.85)' }}
         onClick={onClose}
       >
         <motion.div
@@ -144,16 +145,11 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.92, opacity: 0, y: 20 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-4xl glass-panel-elevated rounded-2xl p-6 overflow-hidden hud-corners max-h-[90vh] flex flex-col"
-          style={{ boxShadow: '0 0 70px rgba(16, 185, 129, 0.1), 0 25px 70px rgba(0, 0, 0, 0.6)' }}
+          className="relative w-full max-w-4xl bg-[#0a0b10]/95 backdrop-blur-2xl rounded-2xl p-6 overflow-hidden border border-white/[0.1] shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[90vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Background scanline & grid */}
-          <div className="absolute inset-0 scanline pointer-events-none" />
-          <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
-
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-emerald-500/15 relative z-10">
+          <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] relative z-10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
                 <Brain className="w-5 h-5" />
@@ -176,14 +172,14 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition border border-slate-700/50"
+              className="w-8 h-8 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-slate-400 hover:text-white transition border border-white/[0.08]"
             >
               <X className="w-4 h-4" />
             </motion.button>
           </div>
 
           {/* Modal Body */}
-          <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1 relative z-10">
+          <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1 relative z-10 custom-scrollbar">
             {/* Top Accuracy Metric Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
@@ -192,8 +188,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                   value: `${(currentMetrics.soh_r2 * 100).toFixed(2)}%`,
                   sub: `MAE: ${(currentMetrics.soh_mae * 100).toFixed(2)}%`,
                   color: 'text-emerald-400',
-                  bg: 'from-emerald-500/10 to-teal-500/5',
-                  border: 'border-emerald-500/30',
+                  cardClass: 'dark-gradient-card-emerald',
                   icon: <Award className="w-4 h-4 text-emerald-400" />
                 },
                 {
@@ -201,8 +196,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                   value: `${(currentMetrics.fault_accuracy * 100).toFixed(1)}%`,
                   sub: `F1-Score: ${(currentMetrics.fault_f1 * 100).toFixed(1)}%`,
                   color: 'text-cyan-400',
-                  bg: 'from-cyan-500/10 to-blue-500/5',
-                  border: 'border-cyan-500/30',
+                  cardClass: 'dark-gradient-card-cyan',
                   icon: <ShieldCheck className="w-4 h-4 text-cyan-400" />
                 },
                 {
@@ -210,8 +204,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                   value: currentMetrics.total_clean_samples_used?.toLocaleString() || '1,450',
                   sub: `Buffer: ${currentMetrics.pipeline_stats?.buffer_count || 1450} samples`,
                   color: 'text-purple-400',
-                  bg: 'from-purple-500/10 to-indigo-500/5',
-                  border: 'border-purple-500/30',
+                  cardClass: 'dark-gradient-card-indigo',
                   icon: <Layers className="w-4 h-4 text-purple-400" />
                 },
                 {
@@ -219,8 +212,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                   value: currentMetrics.model_version || 'v2.5',
                   sub: `Trained in ${currentMetrics.training_duration_sec}s`,
                   color: 'text-amber-400',
-                  bg: 'from-amber-500/10 to-yellow-500/5',
-                  border: 'border-amber-500/30',
+                  cardClass: 'dark-gradient-card-amber',
                   icon: <Cpu className="w-4 h-4 text-amber-400" />
                 }
               ].map((card, i) => (
@@ -229,18 +221,18 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`p-3.5 rounded-xl bg-gradient-to-br ${card.bg} border ${card.border} flex flex-col justify-between`}
+                  className={`p-3.5 rounded-xl ${card.cardClass} border border-white/[0.08] flex flex-col justify-between relative overflow-hidden`}
                 >
-                  <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center justify-between mb-1.5 relative z-10">
                     <span className="text-[8px] font-orbitron font-bold text-slate-400 uppercase tracking-wider">
                       {card.label}
                     </span>
                     {card.icon}
                   </div>
-                  <div className={`text-xl font-extrabold font-mono ${card.color}`}>
+                  <div className={`text-xl font-extrabold font-mono tabular-nums ${card.color} relative z-10`}>
                     {card.value}
                   </div>
-                  <span className="text-[9px] text-slate-500 font-mono mt-1">
+                  <span className="text-[9px] text-slate-400 font-mono tabular-nums mt-1 relative z-10">
                     {card.sub}
                   </span>
                 </motion.div>
@@ -248,7 +240,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
             </div>
 
             {/* Retrain Trigger & Pipeline Quality Card */}
-            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 holo-shimmer">
+            <div className="p-4 rounded-2xl obsidian-card border border-white/[0.08] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4 text-emerald-400" />
@@ -259,7 +251,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                 <p className="text-[10px] text-slate-300 font-sans leading-relaxed">
                   Incoming telemetry is validated against physical battery bounds, filtered for sensor spikes, and automatically batched to retrain the SOH ensemble regressor and fault diagnosis classifier with zero runtime downtime.
                 </p>
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400 font-mono">
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400 font-mono tabular-nums">
                   <span>Acceptance Rate: <strong className="text-emerald-400">{currentMetrics.pipeline_stats?.acceptance_rate_pct || 94.2}%</strong></span>
                   <span className="text-slate-600">│</span>
                   <span>Filtered Outliers: <strong className="text-amber-400">{currentMetrics.pipeline_stats?.noise_rejected || 90}</strong></span>
@@ -298,7 +290,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
             {/* Charts Grid: Convergence History + Feature Importance */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Convergence & Loss Curve */}
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="p-4 rounded-xl obsidian-card border border-white/[0.08]">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
@@ -306,14 +298,14 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                       CONVERGENCE CURVE (LOSS VS EPOCH)
                     </span>
                   </div>
-                  <span className="text-[9px] font-mono text-emerald-400">
+                  <span className="text-[9px] font-mono tabular-nums text-emerald-400">
                     Loss: {currentMetrics.convergence_history[currentMetrics.convergence_history.length - 1]?.loss || 0.009}
                   </span>
                 </div>
                 <div className="h-44 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={currentMetrics.convergence_history} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(16, 185, 129, 0.06)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" />
                       <XAxis dataKey="epoch" stroke="#475569" tick={{ fontSize: 9, fontFamily: 'JetBrains Mono' }} tickFormatter={(e) => `E${e}`} />
                       <YAxis stroke="#475569" tick={{ fontSize: 9, fontFamily: 'JetBrains Mono' }} />
                       <Tooltip contentStyle={TOOLTIP_STYLE} />
@@ -325,7 +317,7 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
               </div>
 
               {/* Feature Importance Attribution */}
-              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+              <div className="p-4 rounded-xl obsidian-card border border-white/[0.08]">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
@@ -344,11 +336,11 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
                       data={currentMetrics.feature_importance}
                       margin={{ top: 0, right: 15, left: 10, bottom: 0 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(168, 85, 247, 0.06)" horizontal={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" horizontal={false} />
                       <XAxis type="number" stroke="#475569" tick={{ fontSize: 9, fontFamily: 'JetBrains Mono' }} tickFormatter={(v) => `${v}%`} />
                       <YAxis type="category" dataKey="name" stroke="#475569" tick={{ fontSize: 9, fontFamily: 'JetBrains Mono' }} width={120} />
                       <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: any) => [`${v}%`, 'Importance']} />
-                      <Bar dataKey="importance" fill="#a855f7" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="importance" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -357,14 +349,14 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t border-emerald-500/15 flex items-center justify-between text-[10px] text-slate-500 font-mono relative z-10">
+          <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-[10px] text-slate-400 font-mono relative z-10">
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               Auto-Validation Threshold: R² &gt; 0.990
             </span>
             <button
               onClick={onClose}
-              className="px-4 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-orbitron text-[9px] tracking-wider transition border border-slate-700/50"
+              className="px-4 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 font-orbitron text-[9px] tracking-wider transition border border-white/[0.08]"
             >
               CLOSE
             </button>

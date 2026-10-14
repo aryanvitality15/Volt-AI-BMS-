@@ -464,21 +464,21 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
           )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-center border-collapse font-mono text-[11px]">
+        <div className="overflow-x-auto rounded-xl border border-white/[0.06] p-2 bg-[#07080e]/60">
+          <table className="w-full text-center border-collapse font-mono tabular-nums text-[11px]">
             <thead>
-              <tr>
-                <th className="p-2 text-left text-slate-500 font-orbitron text-[9px]">VARIABLE</th>
+              <tr className="border-b border-white/[0.08]">
+                <th className="p-2 text-left text-slate-400 font-orbitron text-[9px]">VARIABLE</th>
                 {VARIABLES.map((v: string) => (
-                  <th key={v} className="p-2 text-slate-400 font-semibold text-[9px] truncate max-w-[80px]">
+                  <th key={v} className="p-2 text-slate-300 font-semibold text-[9px] truncate max-w-[80px]">
                     {v}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-white/[0.04]">
               {VARIABLES.map((rVar: string, rIdx: number) => (
-                <tr key={rVar} className="border-t border-slate-850">
+                <tr key={rVar} className="hover:bg-white/[0.02]">
                   <td className="p-2 text-left font-bold text-slate-300 font-orbitron text-[9.5px] truncate max-w-[100px]">
                     {rVar}
                   </td>
@@ -490,10 +490,10 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
                         key={cIdx}
                         onMouseEnter={() => setHoveredCell({ r: rVar, c: cVar, val, desc })}
                         onMouseLeave={() => setHoveredCell(null)}
-                        className="p-1 cursor-pointer transition-transform hover:scale-110"
+                        className="p-1 cursor-pointer transition-transform hover:scale-105"
                       >
                         <div
-                          className={`w-full py-1.5 rounded-md font-mono text-[10px] transition-colors ${getHeatmapColor(
+                          className={`w-full py-1.5 rounded-lg font-mono tabular-nums text-[10px] transition-colors shadow-sm ${getHeatmapColor(
                             val
                           )}`}
                         >
@@ -509,7 +509,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
         </div>
 
         {/* Heatmap Legend */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[9px] font-mono text-slate-400 mt-4 pt-3 border-t border-slate-800 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[9px] font-mono text-slate-400 mt-4 pt-3 border-t border-white/[0.07] gap-2">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded bg-rose-700 inline-block" /> Strong Negative (-1.0)
             <span className="w-3 h-3 rounded bg-slate-800 inline-block ml-2" /> Neutral (0.0)

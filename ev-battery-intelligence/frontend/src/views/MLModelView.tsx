@@ -185,10 +185,10 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 text-[10px] uppercase">
+        <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+          <table className="w-full text-left font-mono tabular-nums text-xs">
+            <thead className="bg-[#07080e]/95 backdrop-blur-md border-b border-white/[0.08] text-slate-400 text-[10px] uppercase tracking-wider">
+              <tr>
                 <th className="py-2.5 px-3">Model Architecture</th>
                 <th className="py-2.5 px-3">R² Score</th>
                 <th className="py-2.5 px-3">MAE (%)</th>
@@ -198,11 +198,11 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
                 <th className="py-2.5 px-3 text-right">Deployment Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850">
+            <tbody className="divide-y divide-white/[0.06]">
               {comparison.map((m: any, idx: number) => {
                 const isActive = m.status === 'ACTIVE PRODUCTION';
                 return (
-                  <tr key={idx} className={isActive ? 'bg-cyan-500/5 font-semibold text-white' : 'text-slate-300 hover:bg-slate-900/50'}>
+                  <tr key={idx} className={isActive ? 'bg-white/[0.04] font-semibold text-white' : 'bg-white/[0.015] text-slate-300 hover:bg-white/[0.05] transition-colors'}>
                     <td className="py-3 px-3 flex items-center gap-2">
                       {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />}
                       <span>{m.model}</span>
@@ -213,10 +213,10 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
                     <td className="py-3 px-3 text-slate-400">{m.train_time_s}s</td>
                     <td className="py-3 px-3 text-slate-400">{m.inference_ms}ms</td>
                     <td className="py-3 px-3 text-right">
-                      <span className={`text-[8.5px] px-2 py-0.5 rounded border ${
+                      <span className={`text-[8.5px] px-2.5 py-0.5 rounded-full border font-semibold tracking-wider uppercase ${
                         isActive
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+                          : 'bg-white/[0.04] text-slate-400 border-white/[0.08]'
                       }`}>
                         {m.status}
                       </span>

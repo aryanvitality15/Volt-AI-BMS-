@@ -826,12 +826,12 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
   const topoInfo = TOPOLOGY_PRESETS[topology] || TOPOLOGY_PRESETS['8S1P'];
 
   return (
-    <div className="w-full h-[360px] sm:h-[460px] lg:h-[520px] rounded-2xl overflow-hidden glass-panel relative border border-slate-700/50 shadow-2xl">
+    <div className="w-full h-[360px] sm:h-[460px] lg:h-[520px] rounded-2xl overflow-hidden bms-3d-bezel bg-[#040508]/90 border border-white/10 shadow-inner relative">
       {/* 3D Canvas Viewport */}
       <Canvas
         camera={{ position: [0, 2.2, 5.8], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.95) 0%, #030712 100%)' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 65%, rgba(99, 102, 241, 0.14) 0%, rgba(6, 182, 212, 0.08) 35%, #040508 80%)' }}
       >
         <ambientLight intensity={1.5} />
         <directionalLight position={[0, 8, 8]} intensity={2.2} castShadow />

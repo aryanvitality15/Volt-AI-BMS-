@@ -308,7 +308,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen text-slate-100 flex font-sans relative bg-[#050a15] overflow-x-hidden">
+    <div className="min-h-screen text-slate-100 flex font-sans relative bg-[#050508] overflow-x-hidden pinstripe-grid">
+      {/* Ambient Mesh Backlight Orbs */}
+      <div className="fixed -top-40 -left-40 w-[42rem] h-[42rem] rounded-full bg-gradient-to-br from-[#6366F1] to-[#EC4899] blur-[140px] opacity-25 pointer-events-none z-0" />
+      <div className="fixed -bottom-40 -right-40 w-[48rem] h-[48rem] rounded-full bg-gradient-to-tl from-[#06B6D4] via-[#38BDF8] to-[#F59E0B] blur-[140px] opacity-20 pointer-events-none z-0" />
+
       {/* 3D Dynamic Particle Background */}
       <ParticleField />
 
@@ -332,7 +336,7 @@ export default function App() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
+            className="fixed inset-0 bg-[#050508]/85 backdrop-blur-md"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div className="relative z-10 w-72 h-full">

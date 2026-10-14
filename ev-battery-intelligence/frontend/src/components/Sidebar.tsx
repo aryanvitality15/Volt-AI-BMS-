@@ -129,19 +129,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`fixed top-0 left-0 bottom-0 z-40 flex flex-col bg-slate-950/95 backdrop-blur-xl border-r border-slate-800/80 transition-all duration-300 ease-in-out select-none ${
+      className={`fixed top-0 left-0 bottom-0 z-40 flex flex-col bg-[#07080e]/92 backdrop-blur-2xl border-r border-white/[0.07] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_20px_50px_rgba(0,0,0,0.8)] transition-all duration-300 ease-in-out select-none ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-white/[0.07]">
         {!isCollapsed ? (
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 via-sky-500 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.35)] flex-shrink-0">
               <Zap className="w-4 h-4 fill-slate-950" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-orbitron font-extrabold text-sm tracking-wider text-white truncate">
+              <span className="font-orbitron font-extrabold text-sm tracking-wider text-gradient-display truncate">
                 VOLT<span className="text-cyan-400">AI</span> BMS
               </span>
               <span className="text-[9px] font-mono text-slate-400 tracking-tight truncate">
@@ -151,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         ) : (
           <div className="mx-auto">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.35)]">
               <Zap className="w-4 h-4 fill-slate-950" />
             </div>
           </div>
@@ -159,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={onToggleCollapse}
-          className={`p-1.5 rounded-lg bg-slate-900 border border-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-800 transition ${
+          className={`p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition ${
             isCollapsed ? 'hidden' : 'block'
           }`}
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
@@ -176,18 +176,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => onTabChange(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 group relative text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative text-left ${
                 isActive
-                  ? 'bg-gradient-to-r from-cyan-500/15 to-emerald-500/10 border border-cyan-500/30 text-white shadow-[0_0_15px_rgba(6,182,212,0.15)] font-semibold'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
+                  ? 'bg-gradient-to-r from-white/[0.08] to-white/[0.02] border border-white/20 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.15),0_8px_20px_rgba(0,0,0,0.4)] font-semibold'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-transparent hover:border-white/[0.06]'
               }`}
             >
               {/* Icon Container */}
               <div
                 className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
                   isActive
-                    ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
-                    : 'bg-slate-900 text-slate-400 group-hover:text-slate-200 group-hover:bg-slate-800'
+                    ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+                    : 'bg-white/[0.03] text-slate-400 border border-white/[0.04] group-hover:text-slate-200 group-hover:bg-white/[0.06]'
                 }`}
               >
                 {item.icon}
@@ -214,7 +214,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Collapsed Tooltip Floating Indicator */}
               {isCollapsed && (
-                <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-orbitron rounded-lg border border-slate-700 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-[#0a0b10] text-white text-xs font-orbitron rounded-xl border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.9)] opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
                   <div className="font-bold">{item.label}</div>
                   <div className="text-[9px] font-mono text-slate-400">{item.subLabel}</div>
                 </div>
@@ -226,10 +226,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Collapse Toggle for Mini Mode */}
       {isCollapsed && (
-        <div className="p-2 border-t border-slate-800/80 flex justify-center">
+        <div className="p-2 border-t border-white/[0.07] flex justify-center">
           <button
             onClick={onToggleCollapse}
-            className="p-2 rounded-lg bg-slate-900 border border-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition"
             title="Expand Sidebar"
           >
             <ChevronRight className="w-4 h-4" />
@@ -239,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* System Status Footprint */}
       {!isCollapsed && (
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/60 font-mono text-[10px]">
+        <div className="p-3 border-t border-white/[0.07] bg-[#07080e]/80 font-mono text-[10px]">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-slate-500 flex items-center gap-1">
               <Server className={`w-3 h-3 ${isLiveBackend ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />

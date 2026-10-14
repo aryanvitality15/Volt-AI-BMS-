@@ -117,7 +117,7 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-[#0a0b10]/85 border border-white/[0.08] shadow-2xl backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400">
             <Sparkles className="w-5 h-5" />
@@ -132,8 +132,8 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[10px] font-mono">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+        <div className="flex items-center gap-2 text-[10px] font-mono tabular-nums">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300">
             <span>PREDICTED SOH: </span>
             <strong className="text-emerald-400 font-bold">{soh.toFixed(1)}%</strong>
           </div>
@@ -146,8 +146,8 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
 
       {/* Hero Explanation Question & Plain-English Text Card (PDF Page 34-35) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 glass-panel rounded-2xl p-6 border border-slate-700/50 shadow-2xl relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-7 dark-gradient-card-indigo rounded-2xl p-6 border border-white/[0.08] shadow-2xl relative overflow-hidden">
+          <div className="flex items-center justify-between mb-4 relative z-10">
             <h3 className="text-sm font-orbitron font-bold uppercase tracking-wider text-white flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-cyan-400" />
               WHY DID THE MODEL PREDICT {soh.toFixed(1)}% SOH?
@@ -158,7 +158,7 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
           </div>
 
           {/* Feature Attribution Bar Chart */}
-          <div className="space-y-4 my-4">
+          <div className="space-y-4 my-4 relative z-10">
             {factors.map((f, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs font-mono">
@@ -166,11 +166,11 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
                     {f.icon}
                     {f.name}
                   </span>
-                  <span className="text-white font-extrabold">{f.percentage.toFixed(1)}%</span>
+                  <span className="text-white font-extrabold tabular-nums">{f.percentage.toFixed(1)}%</span>
                 </div>
-                <div className="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden p-0.5 border border-slate-800">
+                <div className="w-full bg-[#050609] rounded-full h-2.5 overflow-hidden p-0.5 border border-white/[0.06]">
                   <div
-                    className={`bg-gradient-to-r ${f.color} h-1.5 rounded-full transition-all duration-700`}
+                    className={`bg-gradient-to-r ${f.color} h-1.5 rounded-full transition-all duration-700 shadow-sm`}
                     style={{ width: `${f.percentage}%` }}
                   />
                 </div>
@@ -181,8 +181,8 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
         </div>
 
         {/* Machine-Generated AI Explanation (PDF Page 35) */}
-        <div className="lg:col-span-5 glass-panel rounded-2xl p-6 border border-slate-700/50 shadow-2xl flex flex-col justify-between">
-          <div>
+        <div className="lg:col-span-5 dark-gradient-card-emerald rounded-2xl p-6 border border-white/[0.08] shadow-2xl flex flex-col justify-between relative overflow-hidden">
+          <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-orbitron font-bold uppercase tracking-wider text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-400" />
@@ -193,12 +193,12 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
               </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-200 leading-relaxed shadow-inner">
+            <div className="p-4 rounded-xl bg-[#050609]/90 border border-white/[0.08] text-xs font-mono text-slate-200 leading-relaxed shadow-inner">
               "Based on live telemetry, the AI ensemble estimates battery SOH at <strong className="text-emerald-400">{soh.toFixed(1)}%</strong> ({ai.fault_class || 'NORMAL'}). Root Cause Analysis indicates: <span className="text-cyan-300 font-semibold">{rca.probable_cause || 'Nominal operating state'}</span>. Top degradation drivers are <span className="text-amber-300">{factors[0]?.name || 'Cycle Aging'} ({factors[0]?.percentage.toFixed(0)}%)</span> and <span className="text-amber-300">{factors[1]?.name || 'Thermal Stress'} ({factors[1]?.percentage.toFixed(0)}%)</span>."
             </div>
 
             {rca.evidence && rca.evidence.length > 0 && (
-              <div className="mt-3 p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-[10px] font-mono text-slate-300 space-y-1">
+              <div className="mt-3 p-3 rounded-xl bg-[#07080e]/80 border border-white/[0.06] text-[10px] font-mono text-slate-300 space-y-1">
                 <span className="text-[9px] text-slate-500 font-bold block uppercase">DIAGNOSTIC EVIDENCE:</span>
                 {rca.evidence.map((ev: string, idx: number) => (
                   <div key={idx} className="flex items-start gap-1.5 text-slate-300">
@@ -209,13 +209,13 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
               </div>
             )}
 
-            <div className="mt-4 p-3.5 rounded-xl bg-slate-950/80 border border-slate-850 text-[10px] font-mono text-slate-400">
+            <div className="mt-4 p-3.5 rounded-xl bg-[#050609]/90 border border-white/[0.08] text-[10px] font-mono text-slate-400">
               <span className="text-slate-500 block text-[9px] mb-1 font-bold">PHYSICAL ENGINEERING GROUNDING:</span>
               {rec.action || 'LFP (LiFePO4) chemistry exhibits stable degradation. The model attribution reflects authentic electro-chemical stress parameters.'}
             </div>
           </div>
 
-          <div className="mt-4 text-[8.5px] font-mono text-slate-500 text-center border-t border-slate-800 pt-3">
+          <div className="mt-4 text-[8.5px] font-mono text-slate-500 text-center border-t border-white/[0.06] pt-3 relative z-10">
             * Live TreeSHAP attribution and diagnostic synthesis updated at 1Hz.
           </div>
         </div>

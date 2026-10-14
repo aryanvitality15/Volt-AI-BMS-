@@ -69,7 +69,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${soc.toFixed(1)}%`,
       sub: current >= 0 ? 'Discharging Under Load' : 'Fast Charge Inflow',
       icon: <BatteryCharging className="w-4 h-4 text-cyan-400" />,
-      accent: 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400'
+      cardClass: 'dark-gradient-card-cyan'
     },
     {
       title: 'Pack Temperature',
@@ -77,7 +77,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${temp.toFixed(1)}°C`,
       sub: `Peak: ${maxTemp.toFixed(1)}°C (Nominal: 25–35°C)`,
       icon: <Flame className="w-4 h-4 text-amber-400" />,
-      accent: maxTemp > 38 ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' : 'border-slate-800 bg-slate-900/60 text-slate-300'
+      cardClass: maxTemp > 38 ? 'dark-gradient-card-amber' : 'dark-gradient-card'
     },
     {
       title: 'Pack Terminal Voltage',
@@ -85,7 +85,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${voltage.toFixed(2)} V`,
       sub: `Cell Imbalance ΔV: ${(maxImbalance * 1000).toFixed(0)} mV`,
       icon: <Zap className="w-4 h-4 text-blue-400" />,
-      accent: 'border-blue-500/20 bg-blue-500/5 text-blue-400'
+      cardClass: 'dark-gradient-card-cyan'
     },
     {
       title: 'Electrical Power',
@@ -93,7 +93,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${Math.abs(powerKw).toFixed(2)} kW`,
       sub: `Load Current: ${Math.abs(current).toFixed(1)} A`,
       icon: <Activity className="w-4 h-4 text-emerald-400" />,
-      accent: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+      cardClass: 'dark-gradient-card-emerald'
     },
     {
       title: 'Cumulative Cycle Count',
@@ -101,7 +101,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${cycle}`,
       sub: '31.2% Life Used (Target: 2,000 cyc)',
       icon: <Clock className="w-4 h-4 text-purple-400" />,
-      accent: 'border-purple-500/20 bg-purple-500/5 text-purple-400'
+      cardClass: 'dark-gradient-card-indigo'
     },
     {
       title: 'Internal Resistance',
@@ -109,7 +109,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${(32.0 * (1 + resistanceGrowth / 100)).toFixed(1)} mΩ`,
       sub: `+${resistanceGrowth.toFixed(1)}% SEI Growth (Base: 32 mΩ)`,
       icon: <Cpu className="w-4 h-4 text-indigo-400" />,
-      accent: 'border-indigo-500/20 bg-indigo-500/5 text-indigo-400'
+      cardClass: 'dark-gradient-card-indigo'
     },
     {
       title: 'Battery Risk Index',
@@ -117,7 +117,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${Number(risk.score ?? 31.0).toFixed(1)} / 100`,
       sub: 'Safety Integrity: ASIL-C Nominal',
       icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />,
-      accent: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+      cardClass: Number(risk.score ?? 31.0) > 60 ? 'dark-gradient-card-rose' : 'dark-gradient-card-emerald'
     },
     {
       title: 'Estimated RUL',
@@ -125,7 +125,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       value: `${rulCycles} cyc`,
       sub: 'Forecast 95% CI: ±35 cycles',
       icon: <TrendingDown className="w-4 h-4 text-cyan-400" />,
-      accent: 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400'
+      cardClass: 'dark-gradient-card-indigo'
     }
   ];
 
@@ -141,19 +141,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-7 glass-panel rounded-2xl p-4 sm:p-6 lg:p-7 border border-slate-700/60 relative overflow-hidden shadow-2xl flex flex-col justify-between"
+          className="lg:col-span-7 dark-gradient-card-emerald rounded-2xl p-4 sm:p-6 lg:p-7 relative overflow-hidden shadow-2xl flex flex-col justify-between"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-emerald-500/5 pointer-events-none" />
-          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
           {/* Header Row */}
-          <div className="flex items-center justify-between relative z-10 mb-4 pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between relative z-10 mb-4 pb-3 border-b border-white/[0.07]">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
-                <Gauge className="w-4 h-4 text-cyan-400" />
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                <Gauge className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
-                <h2 className="text-sm font-orbitron font-bold tracking-wide text-white uppercase">
+                <h2 className="text-sm font-orbitron font-bold tracking-wide text-gradient-display uppercase">
                   LEVEL 1: Battery Condition
                 </h2>
                 <span className="text-[11px] font-mono text-slate-400">
@@ -164,7 +161,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <button
               onClick={() => onNavigate('soh-degradation')}
-              className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 transition px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30"
+              className="text-xs font-mono text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5 transition px-2.5 py-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
             >
               Degradation Details <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -191,7 +188,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     cx="100"
                     cy="100"
                     r={radius}
-                    stroke="#1e293b"
+                    stroke="rgba(255,255,255,0.06)"
                     strokeWidth="12"
                     fill="none"
                     strokeDasharray={`${maxArc} ${circumference}`}
@@ -212,26 +209,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   />
                 </svg>
 
-                {/* Inner Gauge Text Content (Centered cleanly with no overlap) */}
+                {/* Inner Gauge Text Content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none text-center">
                   <span className="text-[10px] font-orbitron font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
                     BATTERY HEALTH
                   </span>
                   <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-black font-orbitron text-white tracking-tight leading-none">
+                    <span className="text-4xl sm:text-5xl font-black font-mono tabular-nums text-white tracking-tight leading-none">
                       {soh.toFixed(1)}
                     </span>
                     <span className="text-xl font-orbitron text-cyan-400 font-bold ml-0.5">%</span>
                   </div>
-                  <div className={`mt-2 px-3 py-0.5 rounded-full text-[10px] font-orbitron font-bold border inline-flex items-center gap-1.5 ${statusColor}`}>
+                  <div className={`mt-2 px-3 py-0.5 rounded-full text-[10px] font-orbitron font-bold uppercase tracking-wider border inline-flex items-center gap-1.5 ${statusColor}`}>
                     <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                     {healthStatus}
                   </div>
                 </div>
               </div>
 
-              {/* Confidence Badge (Positioned below the gauge with clear margin) */}
-              <div className="mt-3 px-3 py-1 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center gap-2 text-xs font-mono">
+              {/* Confidence Badge */}
+              <div className="mt-3 px-3.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] flex items-center gap-2 text-xs font-mono tabular-nums shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-slate-400">Model Confidence:</span>
                 <strong className="text-emerald-400 font-bold">{confidence.toFixed(1)}%</strong>
@@ -240,10 +237,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Right: Prognostic Metric Indicators */}
             <div className="sm:col-span-6 space-y-3">
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-white/[0.025] border border-white/[0.07] hover:border-white/15 transition flex items-center justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Remaining Useful Life</span>
-                  <span className="text-xl font-orbitron font-bold text-white block mt-0.5">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Remaining Useful Life</span>
+                  <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">
                     {rulCycles} <span className="text-xs font-normal text-slate-400">cycles</span>
                   </span>
                   <span className="text-[10px] font-mono text-emerald-400">
@@ -255,10 +252,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-white/[0.025] border border-white/[0.07] hover:border-white/15 transition flex items-center justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Degradation Rate</span>
-                  <span className="text-xl font-orbitron font-bold text-slate-100 block mt-0.5">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Degradation Rate</span>
+                  <span className="text-xl font-mono tabular-nums font-bold text-slate-100 block mt-0.5">
                     {Number(((100.0 - soh) / Math.max(10, cycle) * 0.12).toFixed(4))} <span className="text-xs font-normal text-slate-400">%/cycle</span>
                   </span>
                   <span className="text-[10px] font-mono text-slate-400">
@@ -270,10 +267,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-white/[0.025] border border-white/[0.07] hover:border-white/15 transition flex items-center justify-between shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Projected End of Life</span>
-                  <span className="text-xl font-orbitron font-bold text-slate-100 block mt-0.5">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Projected End of Life</span>
+                  <span className="text-xl font-mono tabular-nums font-bold text-slate-100 block mt-0.5">
                     Cycle {Number(ai.rul?.estimated_eol_cycle ?? 904)} <span className="text-xs font-normal text-slate-400">(70% SOH)</span>
                   </span>
                   <span className="text-[10px] font-mono text-cyan-400">
@@ -288,15 +285,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Historical Trajectory Bar */}
-          <div className="pt-4 mt-2 border-t border-slate-800/80 relative z-10">
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-2">
+          <div className="pt-4 mt-2 border-t border-white/[0.07] relative z-10">
+            <div className="flex items-center justify-between text-[11px] font-mono tabular-nums text-slate-400 mb-2">
               <span>Historical SOH Trajectory:</span>
               <span className="text-slate-200 font-semibold">
                 100.0% → {((100 + soh) / 2 + 3).toFixed(1)}% → {((100 + soh) / 2).toFixed(1)}% →{' '}
                 <span className={statusColor.split(' ')[0] + ' font-bold'}>{soh.toFixed(1)}%</span>
               </span>
             </div>
-            <div className="w-full bg-slate-900/90 rounded-full h-2.5 overflow-hidden flex p-0.5 border border-slate-800">
+            <div className="w-full bg-black/40 rounded-full h-2.5 overflow-hidden flex p-0.5 border border-white/[0.08]">
               <div
                 className={`h-full rounded-full transition-all duration-700 ${
                   soh >= 80 ? 'bg-gradient-to-r from-cyan-500 to-emerald-500' : soh >= 70 ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : 'bg-gradient-to-r from-rose-500 to-red-600'
@@ -312,19 +309,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-5 glass-panel rounded-2xl p-4 sm:p-6 lg:p-7 border border-slate-700/60 flex flex-col justify-between shadow-2xl relative overflow-hidden"
+          className="lg:col-span-5 dark-gradient-card-indigo rounded-2xl p-4 sm:p-6 lg:p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
           <div>
             {/* Header Row */}
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/[0.07]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-orbitron font-bold uppercase tracking-wide text-white">
+                  <h3 className="text-sm font-orbitron font-bold uppercase tracking-wide text-gradient-display">
                     LEVEL 2: AI Explainability
                   </h3>
                   <span className="text-[11px] font-mono text-slate-400">
@@ -332,13 +327,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] font-mono px-2.5 py-1 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">
+              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                 TreeSHAP XAI
               </span>
             </div>
 
             {/* Natural Language Diagnostic Summary */}
-            <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 mb-4">
+            <div className="p-3.5 rounded-xl bg-white/[0.025] border border-white/[0.07] mb-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
               <p className="text-xs text-slate-300 font-mono leading-relaxed">
                 {rca.probable_cause || 'Battery degradation is primarily driven by cumulative cycle aging and elevated thermal dwell.'}
               </p>
@@ -364,11 +359,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                 return (
                   <div key={i} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs font-mono">
+                    <div className="flex items-center justify-between text-xs font-mono tabular-nums">
                       <span className="text-slate-300 font-medium">{f.name || f.factor}</span>
                       <span className="text-white font-bold">{pct}%</span>
                     </div>
-                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800/80">
+                    <div className="w-full bg-black/40 rounded-full h-2 overflow-hidden border border-white/[0.08]">
                       <div className={`bg-gradient-to-r ${factorColor} h-full rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
                     </div>
                     <span className="text-[10px] font-mono text-slate-500 block">
@@ -382,7 +377,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => onNavigate('explainability')}
-            className="mt-6 w-full py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-orbitron font-bold tracking-wider transition flex items-center justify-center gap-2"
+            className="mt-6 w-full py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 text-slate-200 text-xs font-orbitron font-bold tracking-wider transition flex items-center justify-center gap-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
           >
             <span>EXPLORE COMPLETE XAI FEATURE ATTRIBUTION</span>
             <ChevronRight className="w-4 h-4" />
@@ -401,12 +396,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               LEVEL 3: Live Engineering Telemetry
             </h3>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono tabular-nums text-slate-400">
             Real-Time Stream • 1 Hz Refresh Rate
           </span>
         </div>
 
-        {/* Spacious 4-Column Metric Grid */}
+        {/* Spacious 4-Column Metric Grid with Swatch Aura Bottom Glow */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {kpiCategories.map((kpi, idx) => (
             <motion.div
@@ -414,13 +409,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + idx * 0.03 }}
-              className="glass-panel rounded-xl p-4 border border-slate-800 hover:border-slate-700 transition shadow-lg flex flex-col justify-between group"
+              className={`${kpi.cardClass} rounded-2xl p-4 border border-white/[0.07] hover:border-white/20 transition-all duration-300 shadow-xl flex flex-col justify-between group`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
                   {kpi.category}
                 </span>
-                <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                <div className="p-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
                   {kpi.icon}
                 </div>
               </div>
@@ -429,12 +424,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <span className="text-xs font-orbitron font-semibold text-slate-300 block mb-1">
                   {kpi.title}
                 </span>
-                <span className="text-2xl font-black font-mono text-white tracking-tight block">
+                <span className="text-2xl font-black font-mono tabular-nums text-white tracking-tight block">
                   {kpi.value}
                 </span>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-slate-800/80 text-[11px] font-mono text-slate-400 flex items-center justify-between">
+              <div className="mt-3 pt-2.5 border-t border-white/[0.06] text-[11px] font-mono text-slate-400 flex items-center justify-between">
                 <span className="truncate">{kpi.sub}</span>
               </div>
             </motion.div>

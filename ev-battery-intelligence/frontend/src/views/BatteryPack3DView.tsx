@@ -85,7 +85,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-[#0a0b10]/85 border border-white/[0.08] shadow-2xl backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
             <Layers className="w-5 h-5" />
@@ -106,16 +106,16 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
         </div>
 
         {/* Real-time Pack Metrics Summary */}
-        <div className="flex items-center gap-2 text-[10px] font-mono">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+        <div className="flex items-center gap-2 text-[10px] font-mono tabular-nums">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300">
             <span>PACK VOLTAGE: </span>
             <strong className="text-white font-bold">{packVoltage.toFixed(2)} V</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300">
             <span>ENERGY: </span>
             <strong className="text-cyan-400 font-bold">{topoInfo.energyKwh.toFixed(2)} kWh</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300">
             <span>CELL SPREAD: </span>
             <strong className={maxImbalance > 0.05 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
               {(maxImbalance * 1000).toFixed(0)} mV
@@ -125,7 +125,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
       </div>
 
       {/* 3D Viewport Component */}
-      <div className="glass-panel rounded-2xl p-2 border border-slate-700/50 shadow-2xl overflow-hidden">
+      <div className="obsidian-card rounded-2xl p-2 border border-white/[0.08] shadow-2xl overflow-hidden">
         <BatteryPack3D
           cells={cells}
           packCurrent={packCurrent}
@@ -138,7 +138,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
       </div>
 
       {/* Synchronized 2D Cell Matrix & In-Depth Telemetry Inspector (PDF Page 32) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="obsidian-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -177,29 +177,29 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
             const isWarn = tempVal > 38 || voltVal > 3.45 || voltVal < 2.9 || resVal > 40;
 
             const cardBorder = isCrit
-              ? 'border-rose-500/60 bg-rose-500/10 text-rose-300'
+              ? 'border-rose-500/50 bg-[#0a060a]/90 text-rose-300 shadow-[inset_0_1px_0_0_rgba(244,63,94,0.15)]'
               : isWarn
-              ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
-              : 'border-emerald-500/25 bg-emerald-500/5 text-emerald-300';
+              ? 'border-amber-500/50 bg-[#0a0805]/90 text-amber-300 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.15)]'
+              : 'border-white/[0.08] bg-[#07080e]/90 text-emerald-300 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] hover:border-emerald-500/40';
 
             return (
               <motion.div
                 key={`matrix-c-${cell.cell_id}`}
                 whileHover={{ scale: 1.03, y: -2 }}
                 onClick={() => handleCellClick(isSelected ? null : cell)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer relative group ${cardBorder} ${
-                  isSelected ? 'ring-2 ring-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-105' : ''
+                className={`p-3 rounded-xl border backdrop-blur-xl transition-all cursor-pointer relative group ${cardBorder} ${
+                  isSelected ? 'ring-2 ring-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.35)] scale-105' : ''
                 }`}
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] font-orbitron font-bold text-white">C{cell.cell_id}</span>
-                  <span className="text-[7.5px] font-mono px-1.5 py-0.2 rounded bg-slate-900/80 text-slate-300">
+                  <span className="text-[7.5px] font-mono px-1.5 py-0.2 rounded bg-black/60 text-slate-300 border border-white/[0.06]">
                     {isCrit ? '✕ CRIT' : isWarn ? '▲ WARN' : '● NOM'}
                   </span>
                 </div>
 
                 <div className="mb-1">
-                  <span className="text-base font-extrabold font-mono text-white leading-none">
+                  <span className="text-base font-extrabold font-mono text-white leading-none tabular-nums">
                     {voltVal.toFixed(3)}
                   </span>
                   <span className="text-[9px] font-normal text-slate-500 ml-0.5">V</span>
@@ -207,14 +207,14 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
 
                 <div className="flex items-center justify-between text-[9px] text-slate-400 mb-0.5">
                   <span>Temp:</span>
-                  <span className={`font-mono font-semibold ${tempVal > 40 ? 'text-rose-400' : 'text-slate-300'}`}>
+                  <span className={`font-mono font-semibold tabular-nums ${tempVal > 40 ? 'text-rose-400' : 'text-slate-300'}`}>
                     {tempVal.toFixed(1)}°C
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-[9px] text-slate-400">
                   <span>AC-IR:</span>
-                  <span className="font-mono text-slate-300">{resVal.toFixed(1)}mΩ</span>
+                  <span className="font-mono text-slate-300 tabular-nums">{resVal.toFixed(1)}mΩ</span>
                 </div>
               </motion.div>
             );

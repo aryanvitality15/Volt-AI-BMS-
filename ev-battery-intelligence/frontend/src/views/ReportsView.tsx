@@ -344,9 +344,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
           </div>
         </div>
 
-        <div className="overflow-x-auto max-h-[320px] custom-scrollbar">
-          <table className="w-full text-left font-mono text-xs">
-            <thead className="sticky top-0 bg-slate-950 border-b border-slate-800 text-slate-400 text-[9.5px] uppercase">
+        <div className="overflow-x-auto max-h-[320px] custom-scrollbar rounded-xl border border-white/[0.06]">
+          <table className="w-full text-left font-mono tabular-nums text-xs">
+            <thead className="sticky top-0 bg-[#07080e]/95 backdrop-blur-md border-b border-white/[0.08] text-slate-400 text-[9.5px] uppercase tracking-wider z-10">
               <tr>
                 <th className="py-2.5 px-3">Timestamp</th>
                 <th className="py-2.5 px-3">Battery ID</th>
@@ -358,12 +358,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
                 <th className="py-2.5 px-3 text-right">SOH (%)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850">
+            <tbody className="divide-y divide-white/[0.06]">
               {filteredRows.slice(0, 20).map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-900/60 text-slate-300">
+                <tr key={idx} className="bg-white/[0.015] hover:bg-white/[0.05] text-slate-300 transition-colors">
                   <td className="py-2.5 px-3 text-slate-400">{row.timestamp}</td>
                   <td className="py-2.5 px-3 text-white font-semibold">{row.battery_id || 'EV-001'}</td>
-                  <td className="py-2.5 px-3 text-cyan-400">{row.cycle || 624}</td>
+                  <td className="py-2.5 px-3 text-cyan-400 font-bold">{row.cycle || 624}</td>
                   <td className="py-2.5 px-3">{Number(row.voltage || row.pack_voltage || 25.6).toFixed(2)}</td>
                   <td className="py-2.5 px-3">{Number(row.current || row.pack_current || 14.5).toFixed(1)}</td>
                   <td className="py-2.5 px-3">{Number(row.avg_temp || row.avg_temperature || 26.0).toFixed(1)}</td>

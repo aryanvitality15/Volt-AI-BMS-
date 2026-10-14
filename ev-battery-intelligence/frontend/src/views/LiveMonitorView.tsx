@@ -130,37 +130,37 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
         </div>
       </div>
 
-      {/* Real-Time Metric Pills */}
+      {/* Real-Time Metric Pills with Signature Aura Backdrops */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">VOLTAGE</span>
-          <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{voltage.toFixed(2)} V</span>
+        <div className="p-3.5 rounded-2xl dark-gradient-card-cyan border border-white/[0.07] shadow-lg">
+          <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">VOLTAGE</span>
+          <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{voltage.toFixed(2)} V</span>
           <span className="text-[8px] font-mono text-cyan-400">Min 24.8V │ Max 27.2V</span>
         </div>
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">CURRENT</span>
-          <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{current.toFixed(1)} A</span>
+        <div className="p-3.5 rounded-2xl dark-gradient-card-emerald border border-white/[0.07] shadow-lg">
+          <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">CURRENT</span>
+          <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{current.toFixed(1)} A</span>
           <span className="text-[8px] font-mono text-emerald-400">{current >= 0 ? 'Discharging' : 'Regen Charging'}</span>
         </div>
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">POWER DRAW</span>
-          <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{powerKw.toFixed(2)} kW</span>
+        <div className="p-3.5 rounded-2xl dark-gradient-card-indigo border border-white/[0.07] shadow-lg">
+          <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">POWER DRAW</span>
+          <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{powerKw.toFixed(2)} kW</span>
           <span className="text-[8px] font-mono text-purple-400">P = V × I</span>
         </div>
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">AVG TEMP</span>
-          <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{temp.toFixed(1)} °C</span>
+        <div className="p-3.5 rounded-2xl dark-gradient-card-amber border border-white/[0.07] shadow-lg">
+          <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">AVG TEMP</span>
+          <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{temp.toFixed(1)} °C</span>
           <span className="text-[8px] font-mono text-amber-400">ΔT +1.2°C Joule Heat</span>
         </div>
-        <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 col-span-2 sm:col-span-1">
-          <span className="text-[9px] font-mono text-slate-500 block">STATE OF CHARGE</span>
-          <span className="text-lg font-orbitron font-bold text-emerald-400 block mt-0.5">{soc.toFixed(1)}%</span>
+        <div className="p-3.5 rounded-2xl dark-gradient-card-emerald border border-white/[0.07] shadow-lg col-span-2 sm:col-span-1">
+          <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">STATE OF CHARGE</span>
+          <span className="text-xl font-mono tabular-nums font-bold text-emerald-400 block mt-0.5">{soc.toFixed(1)}%</span>
           <span className="text-[8px] font-mono text-slate-400">Coulomb Counting</span>
         </div>
       </div>
 
       {/* GRAPH 7: PACK VOLTAGE VS TIME (PDF Page 26) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center">
@@ -175,7 +175,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
               </span>
             </div>
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+          <span className="text-[10px] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
             {voltage.toFixed(2)} V
           </span>
         </div>
@@ -185,18 +185,19 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
             <AreaChart data={filteredHistory}>
               <defs>
                 <linearGradient id="voltArea" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.35} />
+                  <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.08} />
+                  <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 10, fill: '#64748b' }} />
               <YAxis domain={['auto', 'auto']} stroke="#64748b" tick={{ fontSize: 10, fill: '#64748b' }} unit="V" />
               <Tooltip
-                contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
               />
               <ReferenceLine y={25.6} stroke="#10b981" strokeDasharray="4 4" label={{ value: 'Nominal 25.6V', fill: '#10b981', fontSize: 9 }} />
-              <Area type="monotone" dataKey="voltage" stroke="#06b6d4" strokeWidth={2.5} fillOpacity={1} fill="url(#voltArea)" isAnimationActive={false} />
+              <Area type="monotone" dataKey="voltage" stroke="#38bdf8" strokeWidth={2.5} fillOpacity={1} fill="url(#voltArea)" isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -205,7 +206,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
       {/* GRAPH 8: CURRENT VS TIME & GRAPH 9: POWER (PDF Page 27) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 8: Current vs Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -220,7 +221,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span className="text-[10px] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
               {current.toFixed(1)} A
             </span>
           </div>
@@ -228,13 +229,13 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={filteredHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} />
                 <YAxis stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="A" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
                 />
-                <ReferenceLine y={0} stroke="#475569" />
+                <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" />
                 <Line type="monotone" dataKey="current" stroke="#10b981" strokeWidth={2} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -242,7 +243,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
         </div>
 
         {/* GRAPH 9: Power vs Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/25 flex items-center justify-center">
@@ -257,7 +258,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            <span className="text-[10px] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
               {powerKw.toFixed(2)} kW
             </span>
           </div>
@@ -267,17 +268,18 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
               <AreaChart data={filteredHistory}>
                 <defs>
                   <linearGradient id="powerArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.35} />
+                    <stop offset="60%" stopColor="#6366f1" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} />
                 <YAxis stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="kW" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
                 />
-                <Area type="monotone" dataKey="power" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#powerArea)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="power" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#powerArea)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -287,7 +289,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
       {/* GRAPH 5: TEMPERATURE VS TIME & GRAPH 10: SOC VS TIME (PDF Pages 25, 28) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 5: Thermal Monitoring */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center">
@@ -302,30 +304,37 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span className="text-[10px] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
               {temp.toFixed(1)} °C
             </span>
           </div>
 
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={filteredHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <AreaChart data={filteredHistory}>
+                <defs>
+                  <linearGradient id="tempArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
+                    <stop offset="60%" stopColor="#ef4444" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} />
                 <YAxis domain={[20, 50]} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="°C" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
                 />
                 <ReferenceLine y={35} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: 'Elevated 35°C', fill: '#f59e0b', fontSize: 9 }} />
                 <ReferenceLine y={45} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'Critical 45°C', fill: '#ef4444', fontSize: 9 }} />
-                <Line type="monotone" dataKey="temp" stroke="#f59e0b" strokeWidth={2.5} dot={false} isAnimationActive={false} />
-              </LineChart>
+                <Area type="monotone" dataKey="temp" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#tempArea)" isAnimationActive={false} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* GRAPH 10: SOC vs Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -340,7 +349,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+            <span className="text-[10px] font-mono tabular-nums px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
               {soc.toFixed(1)} %
             </span>
           </div>
@@ -350,15 +359,16 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
               <AreaChart data={filteredHistory}>
                 <defs>
                   <linearGradient id="socArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                    <stop offset="60%" stopColor="#06b6d4" stopOpacity={0.08} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
                 <XAxis dataKey="time" stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} />
                 <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: 'rgba(8, 9, 14, 0.95)', borderColor: 'rgba(255, 255, 255, 0.12)', borderRadius: '14px', fontSize: '11px', backdropFilter: 'blur(16px)', boxShadow: '0 10px 30px rgba(0,0,0,0.8)' }}
                 />
                 <Area type="monotone" dataKey="soc" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#socArea)" isAnimationActive={false} />
               </AreaChart>
