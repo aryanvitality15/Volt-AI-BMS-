@@ -19,6 +19,15 @@ import { AlertsDrawer } from './components/AlertsDrawer';
 import { SelfLearningModal } from './components/SelfLearningModal';
 import { ParticleField } from './components/ParticleField';
 import { BatteryState, AlertItem, CellTelemetry } from './types';
+import { HardwareConnectModal } from './components/HardwareConnectModal';
+import {
+  bluetoothManager,
+  wifiManager,
+  normalizeTelemetryPayload,
+  HardwareSourceMode,
+  HardwareStatus,
+  HardwareStats
+} from './services/hardwareTelemetry';
 
 // Baseline fallback state
 const INITIAL_BATTERY_STATE: BatteryState = {
@@ -121,6 +130,25 @@ export default function App() {
   const [isSelfLearningOpen, setIsSelfLearningOpen] = useState<boolean>(false);
   const [isAlertsOpen, setIsAlertsOpen] = useState<boolean>(false);
 
+  // Hardware Connectivity State
+  const [isHardwareModalOpen, setIsHardwareModalOpen] = useState<boolean>(false);
+  const [hardwareSourceMode, setHardwareSourceMode] = useState<HardwareSourceMode>('SIMULATOR');
+  const [bleStatus, setBleStatus] = useState<HardwareStatus>('DISCONNECTED');
+  const [bleStats, setBleStats] = useState<HardwareStats>({
+    packetsReceived: 0,
+    lastPacketTimestamp: null,
+    packetRateHz: 0,
+    latencyMs: 0,
+  });
+  const [wifiStatus, setWifiStatus] = useState<HardwareStatus>('DISCONNECTED');
+  const [wifiStats, setWifiStats] = useState<HardwareStats>({
+    packetsReceived: 0,
+    lastPacketTimestamp: null,
+    packetRateHz: 0,
+    latencyMs: 0,
+  });
+  const [lastRawPacket, setLastRawPacket] = useState<string | null>(null);
+
   const wsRef = useRef<WebSocket | null>(null);
 
   // Fetch alerts from API if backend is online, else from clientSimulator
@@ -214,9 +242,99 @@ export default function App() {
     };
   }, []);
 
-  // Autonomous 1Hz High-Fidelity Physics & AI Simulation Loop (Runs continuously when live backend is not attached)
+  // Register Bluetooth & Wi-Fi Hardware Telemetry listeners
   useEffect(() => {
-    if (!isLiveBackend) {
+    bluetoothManager.setCallbacks(
+      (normalizedState, rawPayload) => {
+        setLastRawPacket(typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload, null, 2));
+        setData(normalizedState);
+        const packVoltage = normalizedState.pack.voltage;
+        const packCurrent = normalizedState.pack.current;
+        const packTemp = normalizedState.pack.avg_temp;
+        const sohVal = normalizedState.ai.soh;
+
+        setHistory((prevHist) => {
+          const point = {
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            voltage: Number(packVoltage.toFixed(2)),
+            current: Number(packCurrent.toFixed(1)),
+            temp: Number(packTemp.toFixed(1)),
+            soh: Number(sohVal.toFixed(1))
+          };
+          return [...prevHist.slice(-49), point];
+        });
+      },
+      (status, stats) => {
+        setBleStatus(status);
+        setBleStats(stats);
+        if (status === 'CONNECTED' || status === 'STREAMING') {
+          setHardwareSourceMode('BLUETOOTH');
+        } else if (hardwareSourceMode === 'BLUETOOTH') {
+          setHardwareSourceMode('SIMULATOR');
+        }
+      }
+    );
+
+    wifiManager.setCallbacks(
+      (normalizedState, rawPayload) => {
+        setLastRawPacket(typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload, null, 2));
+        setData(normalizedState);
+        const packVoltage = normalizedState.pack.voltage;
+        const packCurrent = normalizedState.pack.current;
+        const packTemp = normalizedState.pack.avg_temp;
+        const sohVal = normalizedState.ai.soh;
+
+        setHistory((prevHist) => {
+          const point = {
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            voltage: Number(packVoltage.toFixed(2)),
+            current: Number(packCurrent.toFixed(1)),
+            temp: Number(packTemp.toFixed(1)),
+            soh: Number(sohVal.toFixed(1))
+          };
+          return [...prevHist.slice(-49), point];
+        });
+      },
+      (status, stats) => {
+        setWifiStatus(status);
+        setWifiStats(stats);
+        if (status === 'CONNECTED' || status === 'STREAMING') {
+          setHardwareSourceMode('WIFI');
+        } else if (hardwareSourceMode === 'WIFI') {
+          setHardwareSourceMode('SIMULATOR');
+        }
+      }
+    );
+  }, [hardwareSourceMode]);
+
+  // Handle Mock Test Packet Injection from Hardware modal
+  const handleInjectMockPacket = (mockPayload: any) => {
+    setLastRawPacket(typeof mockPayload === 'string' ? mockPayload : JSON.stringify(mockPayload, null, 2));
+    setData((prev) => {
+      const normalized = normalizeTelemetryPayload(mockPayload, prev);
+      const packVoltage = normalized.pack.voltage;
+      const packCurrent = normalized.pack.current;
+      const packTemp = normalized.pack.avg_temp;
+      const sohVal = normalized.ai.soh;
+
+      setHistory((prevHist) => {
+        const point = {
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          voltage: Number(packVoltage.toFixed(2)),
+          current: Number(packCurrent.toFixed(1)),
+          temp: Number(packTemp.toFixed(1)),
+          soh: Number(sohVal.toFixed(1))
+        };
+        return [...prevHist.slice(-49), point];
+      });
+
+      return normalized;
+    });
+  };
+
+  // Autonomous 1Hz High-Fidelity Physics & AI Simulation Loop (Runs continuously when live backend or live hardware is not attached)
+  useEffect(() => {
+    if (!isLiveBackend && hardwareSourceMode === 'SIMULATOR') {
       const pollInterval = setInterval(() => {
         // Step the grounded electrochemical simulation engine
         const nextState = clientSimulator.step(1.0);
@@ -245,7 +363,7 @@ export default function App() {
 
       return () => clearInterval(pollInterval);
     }
-  }, [isLiveBackend, scenario]);
+  }, [isLiveBackend, scenario, hardwareSourceMode]);
 
   // Handle Scenario Change across Simulator and Backend
   const handleScenarioChange = async (newScenario: string) => {
@@ -329,6 +447,8 @@ export default function App() {
           activeAnomalyCount={activeAlerts.length}
           isConnected={true}
           isLiveBackend={isLiveBackend}
+          onOpenHardwareConnect={() => setIsHardwareModalOpen(true)}
+          hardwareMode={hardwareSourceMode}
         />
       </div>
 
@@ -352,6 +472,8 @@ export default function App() {
               activeAnomalyCount={activeAlerts.length}
               isConnected={true}
               isLiveBackend={isLiveBackend}
+              onOpenHardwareConnect={() => setIsHardwareModalOpen(true)}
+              hardwareMode={hardwareSourceMode}
             />
           </div>
         </div>
@@ -372,6 +494,9 @@ export default function App() {
           onOpenWhatIf={() => setIsWhatIfOpen(true)}
           onOpenSelfLearning={() => setIsSelfLearningOpen(true)}
           onOpenAlerts={() => setIsAlertsOpen(true)}
+          onOpenHardwareConnect={() => setIsHardwareModalOpen(true)}
+          hardwareMode={hardwareSourceMode}
+          hardwareStatus={hardwareSourceMode === 'BLUETOOTH' ? bleStatus : hardwareSourceMode === 'WIFI' ? wifiStatus : undefined}
           activeAlertCount={activeAlerts.length}
           onToggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
@@ -472,6 +597,20 @@ export default function App() {
         onClose={() => setIsAlertsOpen(false)}
         alerts={alerts}
         onResolveAlert={handleResolveAlert}
+      />
+
+      {/* Hardware Connectivity Modal (Web Bluetooth & Wi-Fi Direct) */}
+      <HardwareConnectModal
+        isOpen={isHardwareModalOpen}
+        onClose={() => setIsHardwareModalOpen(false)}
+        currentMode={hardwareSourceMode}
+        onSelectMode={(mode) => setHardwareSourceMode(mode)}
+        bleStatus={bleStatus}
+        bleStats={bleStats}
+        wifiStatus={wifiStatus}
+        wifiStats={wifiStats}
+        lastRawPacket={lastRawPacket}
+        onInjectTestPacket={handleInjectMockPacket}
       />
     </div>
   );

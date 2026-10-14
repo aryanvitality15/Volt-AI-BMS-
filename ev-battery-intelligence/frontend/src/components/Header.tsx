@@ -16,9 +16,11 @@ import {
   Clock,
   Download,
   Bell,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Bluetooth
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { HardwareSourceMode, HardwareStatus } from '../services/hardwareTelemetry';
 
 interface HeaderProps {
   scenario: string;
@@ -28,6 +30,9 @@ interface HeaderProps {
   onOpenWhatIf: () => void;
   onOpenSelfLearning?: () => void;
   onOpenAlerts?: () => void;
+  onOpenHardwareConnect?: () => void;
+  hardwareMode?: HardwareSourceMode;
+  hardwareStatus?: HardwareStatus;
   activeAlertCount: number;
   onToggleSidebar?: () => void;
 }
@@ -55,6 +60,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenWhatIf,
   onOpenSelfLearning,
   onOpenAlerts,
+  onOpenHardwareConnect,
+  hardwareMode = 'SIMULATOR',
+  hardwareStatus = 'DISCONNECTED',
   activeAlertCount,
   onToggleSidebar
 }) => {
@@ -119,15 +127,37 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Real-time Status Badge */}
             <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[9px] sm:text-[10px] font-mono shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]">
-              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]'}`} />
-              <span className={`${isConnected ? 'text-emerald-400' : 'text-cyan-400'} font-bold font-orbitron text-[8.5px] sm:text-[9px]`}>
-                {isConnected ? 'LIVE 1Hz' : 'ONLINE 1Hz'}
+              <span className={`w-2 h-2 rounded-full ${isConnected || hardwareMode !== 'SIMULATOR' ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]'}`} />
+              <span className={`${isConnected || hardwareMode !== 'SIMULATOR' ? 'text-emerald-400' : 'text-cyan-400'} font-bold font-orbitron text-[8.5px] sm:text-[9px]`}>
+                {hardwareMode === 'BLUETOOTH' ? 'BLE LIVE' : hardwareMode === 'WIFI' ? 'WI-FI LIVE' : isConnected ? 'LIVE 1Hz' : 'ONLINE 1Hz'}
               </span>
               <span className="hidden sm:inline text-white/20">│</span>
               <span className="hidden sm:inline text-slate-400 text-[9px]">
-                {isConnected ? 'FastAPI Stream' : 'Physics Simulator'}
+                {hardwareMode === 'BLUETOOTH' ? 'Web BLE Stream' : hardwareMode === 'WIFI' ? 'Direct Wi-Fi' : isConnected ? 'FastAPI Stream' : 'Physics Simulator'}
               </span>
             </div>
+
+            {/* Hardware Connect Trigger Button */}
+            <button
+              onClick={onOpenHardwareConnect}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-orbitron font-bold border transition ${
+                hardwareMode === 'BLUETOOTH'
+                  ? 'bg-blue-600/20 border-blue-500/50 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse'
+                  : hardwareMode === 'WIFI'
+                  ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse'
+                  : 'bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-300 hover:text-white hover:border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+              }`}
+              title="Connect ESP32 / Arduino / BLE BMS Hardware"
+            >
+              {hardwareMode === 'BLUETOOTH' ? (
+                <Bluetooth className="w-3.5 h-3.5 text-blue-400" />
+              ) : hardwareMode === 'WIFI' ? (
+                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Radio className="w-3.5 h-3.5 text-cyan-400" />
+              )}
+              <span>{hardwareMode === 'BLUETOOTH' ? 'BLE BMS' : hardwareMode === 'WIFI' ? 'WI-FI BMS' : 'HARDWARE I/O'}</span>
+            </button>
 
             {/* Alert Counter Button */}
             <button
@@ -204,6 +234,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Mobile Quick Action Buttons */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              onClick={onOpenHardwareConnect}
+              className={`px-2.5 py-1 rounded-xl border text-[9px] font-orbitron font-bold transition flex items-center gap-1 ${
+                hardwareMode !== 'SIMULATOR'
+                  ? 'bg-blue-500/20 border-blue-500/40 text-blue-300 animate-pulse'
+                  : 'bg-cyan-500/10 border-cyan-500/25 text-cyan-300'
+              }`}
+              title="Hardware I/O"
+            >
+              <Radio className="w-3 h-3" />
+              <span>I/O</span>
+            </button>
+
             <button
               onClick={onOpenSelfLearning}
               className="px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[9px] font-orbitron font-bold text-emerald-300 transition flex items-center gap-1"

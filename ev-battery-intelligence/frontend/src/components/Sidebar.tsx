@@ -15,8 +15,12 @@ import {
   Zap,
   Sliders,
   ShieldAlert,
-  Server
+  Server,
+  Radio,
+  Bluetooth,
+  Wifi
 } from 'lucide-react';
+import { HardwareSourceMode } from '../services/hardwareTelemetry';
 
 export type NavTab =
   | 'dashboard'
@@ -38,6 +42,8 @@ interface SidebarProps {
   activeAnomalyCount?: number;
   isConnected?: boolean;
   isLiveBackend?: boolean;
+  onOpenHardwareConnect?: () => void;
+  hardwareMode?: HardwareSourceMode;
 }
 
 interface NavItem {
@@ -56,7 +62,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse,
   activeAnomalyCount = 0,
   isConnected = true,
-  isLiveBackend = false
+  isLiveBackend = false,
+  onOpenHardwareConnect,
+  hardwareMode = 'SIMULATOR'
 }) => {
   const navItems: NavItem[] = [
     {
@@ -224,9 +232,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </div>
 
-      {/* Collapse Toggle for Mini Mode */}
+      {/* Collapse Toggle & Mini Hardware Trigger */}
       {isCollapsed && (
-        <div className="p-2 border-t border-white/[0.07] flex justify-center">
+        <div className="p-2 border-t border-white/[0.07] flex flex-col items-center gap-2">
+          {onOpenHardwareConnect && (
+            <button
+              onClick={onOpenHardwareConnect}
+              className={`p-2 rounded-lg border transition ${
+                hardwareMode === 'BLUETOOTH'
+                  ? 'bg-blue-500/20 border-blue-500/40 text-blue-300 animate-pulse'
+                  : hardwareMode === 'WIFI'
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 animate-pulse'
+                  : 'bg-white/[0.03] border-white/[0.08] text-cyan-400 hover:text-white'
+              }`}
+              title="Connect Hardware (BLE / Wi-Fi)"
+            >
+              {hardwareMode === 'BLUETOOTH' ? <Bluetooth className="w-4 h-4" /> : hardwareMode === 'WIFI' ? <Wifi className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
+            </button>
+          )}
+
           <button
             onClick={onToggleCollapse}
             className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition"
@@ -237,25 +261,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      {/* System Status Footprint */}
+      {/* System Status Footprint & Hardware Quick Connect */}
       {!isCollapsed && (
-        <div className="p-3 border-t border-white/[0.07] bg-[#07080e]/80 font-mono text-[10px]">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-slate-500 flex items-center gap-1">
-              <Server className={`w-3 h-3 ${isLiveBackend ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
-              PIPELINE
-            </span>
-            <span className={`font-bold ${isLiveBackend ? 'text-emerald-400' : 'text-cyan-400'}`}>
-              {isLiveBackend ? 'FASTAPI LIVE' : '1Hz SIMULATOR'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-[9px] text-slate-400">
-            <span>Model Version:</span>
-            <span className="text-slate-300 font-semibold">v1.4.2 (RF-Ensemble)</span>
-          </div>
-          <div className="flex items-center justify-between text-[9px] text-slate-400 mt-0.5">
-            <span>Status:</span>
-            <span className="text-emerald-400 font-semibold">ONLINE (1 Hz)</span>
+        <div className="p-3 border-t border-white/[0.07] bg-[#07080e]/80 font-mono text-[10px] space-y-2">
+          {onOpenHardwareConnect && (
+            <button
+              onClick={onOpenHardwareConnect}
+              className={`w-full py-2 px-2.5 rounded-xl border flex items-center justify-between text-left transition ${
+                hardwareMode === 'BLUETOOTH'
+                  ? 'bg-blue-500/15 border-blue-500/40 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+                  : hardwareMode === 'WIFI'
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                  : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.08] text-slate-300 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {hardwareMode === 'BLUETOOTH' ? (
+                  <Bluetooth className="w-3.5 h-3.5 text-blue-400" />
+                ) : hardwareMode === 'WIFI' ? (
+                  <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                )}
+                <div>
+                  <div className="font-orbitron font-bold text-[9px] uppercase tracking-wider">
+                    {hardwareMode === 'BLUETOOTH' ? 'BLE BMS NODE' : hardwareMode === 'WIFI' ? 'WI-FI BMS NODE' : 'CONNECT HARDWARE'}
+                  </div>
+                  <div className="text-[8px] text-slate-400 font-mono">
+                    {hardwareMode !== 'SIMULATOR' ? 'Hardware Stream Active' : 'ESP32 / BLE / Wi-Fi'}
+                  </div>
+                </div>
+              </div>
+              <span className="text-[8px] font-mono px-1.5 py-0.2 rounded bg-white/[0.08] text-white">
+                {hardwareMode !== 'SIMULATOR' ? 'ONLINE' : 'SETUP'}
+              </span>
+            </button>
+          )}
+
+          <div className="pt-1 border-t border-white/[0.04]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-slate-500 flex items-center gap-1">
+                <Server className={`w-3 h-3 ${isLiveBackend || hardwareMode !== 'SIMULATOR' ? 'text-emerald-400 animate-pulse' : 'text-cyan-400'}`} />
+                PIPELINE
+              </span>
+              <span className={`font-bold ${hardwareMode === 'BLUETOOTH' ? 'text-blue-400' : hardwareMode === 'WIFI' ? 'text-emerald-400' : isLiveBackend ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                {hardwareMode === 'BLUETOOTH' ? 'WEB BLE STREAM' : hardwareMode === 'WIFI' ? 'DIRECT WI-FI' : isLiveBackend ? 'FASTAPI LIVE' : '1Hz SIMULATOR'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[9px] text-slate-400">
+              <span>Model Version:</span>
+              <span className="text-slate-300 font-semibold">v1.4.2 (RF-Ensemble)</span>
+            </div>
           </div>
         </div>
       )}
