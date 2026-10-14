@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 w-full bg-[#07080e]/92 backdrop-blur-2xl border-b border-white/[0.07] px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 shadow-[0_10px_30px_rgba(0,0,0,0.7)] select-none">
-      <div className="max-w-7xl mx-auto flex flex-col gap-2.5">
+      <div className="w-full flex flex-col gap-2.5">
         
         {/* Tier 1: Main Bar */}
         <div className="flex items-center justify-between gap-3 min-w-0">
@@ -126,17 +126,17 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right Desktop/Tablet: Live Status & Fast Action Triggers */}
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
             {/* Unified Telemetry Status & Live Clock Capsule */}
-            <div className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[9px] sm:text-[10px] font-mono shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] whitespace-nowrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[9px] sm:text-[10px] font-mono shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] whitespace-nowrap">
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected || hardwareMode !== 'SIMULATOR' ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]'}`} />
               <span className={`${isConnected || hardwareMode !== 'SIMULATOR' ? 'text-emerald-400' : 'text-cyan-400'} font-bold font-orbitron text-[8.5px] sm:text-[9px]`}>
                 {hardwareMode === 'BLUETOOTH' ? 'BLE 10Hz' : hardwareMode === 'WIFI' ? 'WI-FI 10Hz' : hardwareMode === 'SERIAL' ? 'SERIAL 20Hz' : isConnected ? 'LIVE 1Hz' : 'ONLINE 1Hz'}
               </span>
-              <span className="hidden md:inline text-white/20">│</span>
-              <span className="hidden md:inline text-slate-400 text-[9px]">
+              <span className="hidden 2xl:inline text-white/20">│</span>
+              <span className="hidden 2xl:inline text-slate-400 text-[9px]">
                 {hardwareMode === 'BLUETOOTH' ? 'Web BLE' : hardwareMode === 'WIFI' ? 'Direct Wi-Fi' : hardwareMode === 'SERIAL' ? 'USB Serial' : isConnected ? 'FastAPI' : 'Physics Sim'}
               </span>
-              <span className="hidden xl:inline text-white/20">│</span>
-              <span className="hidden xl:inline text-slate-300 font-mono tabular-nums font-semibold">
+              <span className="hidden sm:inline text-white/20">│</span>
+              <span className="hidden sm:inline text-slate-300 font-mono tabular-nums font-semibold">
                 {currentTime || '12:00:00 AM'}
               </span>
             </div>
@@ -186,11 +186,11 @@ export const Header: React.FC<HeaderProps> = ({
               title="View Active Anomalies & Safety Alerts"
             >
               <Bell className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
-              <span>{activeAlertCount > 0 ? `${activeAlertCount}` : '0'} <span className="hidden xs:inline">ALERTS</span></span>
+              <span>{activeAlertCount > 0 ? `${activeAlertCount}` : '0'} <span className="hidden sm:inline">ALERTS</span></span>
             </button>
 
-            {/* Desktop Scenario Selector */}
-            <div className="hidden lg:flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] rounded-xl px-2.5 py-1 text-xs shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] whitespace-nowrap">
+            {/* Desktop Scenario Selector (Shown on wider desktop displays) */}
+            <div className="hidden 2xl:flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] rounded-xl px-2.5 py-1 text-xs shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] whitespace-nowrap">
               <Cpu className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <select
                 value={scenario}
@@ -209,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* AI Self Learning Badge */}
             <button
               onClick={onOpenSelfLearning}
-              className="hidden xl:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-[10px] font-orbitron font-bold text-emerald-300 transition shadow-[0_0_12px_rgba(16,185,129,0.15)] whitespace-nowrap"
+              className="hidden 2xl:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/25 text-[10px] font-orbitron font-bold text-emerald-300 transition shadow-[0_0_12px_rgba(16,185,129,0.15)] whitespace-nowrap"
               title="Continuous Self-Learning & Accuracy Metrics"
             >
               <Brain className="w-3 h-3 text-emerald-400 flex-shrink-0" />
@@ -227,15 +227,15 @@ export const Header: React.FC<HeaderProps> = ({
               <span>PASSPORT</span>
             </button>
 
-            {/* Operator Profile & Sign Out Control */}
+            {/* Operator Profile & Sign Out Control (Always visible & inside frame) */}
             {operatorSession && (
-              <div className="flex items-center gap-2 pl-1.5 sm:pl-2 border-l border-white/[0.08] flex-shrink-0">
-                <div className="flex items-center gap-2 px-2 sm:px-2.5 py-1 rounded-xl bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+              <div className="flex items-center gap-1.5 sm:gap-2 pl-2 sm:pl-3 border-l border-white/[0.08] flex-shrink-0">
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] flex-shrink-0">
                   <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-cyan-500/25 to-indigo-500/25 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-300 flex-shrink-0">
                     {operatorSession.name ? operatorSession.name.charAt(0).toUpperCase() : 'O'}
                   </div>
-                  <div className="hidden xl:flex flex-col text-left">
-                    <span className="text-[10px] font-semibold text-slate-200 leading-tight truncate max-w-[100px]">
+                  <div className="flex flex-col text-left">
+                    <span className="text-[10px] font-semibold text-slate-200 leading-tight truncate max-w-[80px] sm:max-w-[110px]">
                       {operatorSession.name}
                     </span>
                     <span className={`text-[8px] font-mono font-bold leading-tight ${
@@ -251,6 +251,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={onSignOut}
                     className="p-1.5 rounded-xl bg-white/[0.03] hover:bg-rose-500/15 border border-white/[0.08] hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition flex-shrink-0"
                     title="Sign Out of Volt BMS Gateway"
+                    aria-label="Sign Out of Volt BMS Gateway"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
@@ -260,8 +261,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Tier 2: Mobile / Tablet Control Toolbar (Shown on tablet and below) */}
-        <div className="flex lg:hidden items-center justify-between gap-2 pt-1.5 border-t border-white/[0.07] text-xs">
+        {/* Tier 2: Scenario & Quick Controls Toolbar (Shown on 2xl and below for effortless access) */}
+        <div className="flex 2xl:hidden items-center justify-between gap-2 pt-1.5 border-t border-white/[0.07] text-xs">
           {/* Mobile/Tablet Scenario Selector */}
           <div className="flex-1 flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] rounded-xl px-2.5 py-1 min-w-0">
             <Cpu className="w-3 h-3 text-emerald-400 flex-shrink-0" />
