@@ -29,6 +29,9 @@ import {
   HardwareStatus,
   HardwareStats
 } from './services/hardwareTelemetry';
+import { universalHardwareEngine } from './services/universalHardwareEngine';
+import { accountStorage } from './services/accountStorageEngine';
+import { onlineMl } from './services/onlineMlEngine';
 
 // Baseline fallback state
 const INITIAL_BATTERY_STATE: BatteryState = {
@@ -177,6 +180,13 @@ export default function App() {
     packetRateHz: 0,
     latencyMs: 0,
   });
+  const [serialStatus, setSerialStatus] = useState<HardwareStatus>('DISCONNECTED');
+  const [serialStats, setSerialStats] = useState<HardwareStats>({
+    packetsReceived: 0,
+    lastPacketTimestamp: null,
+    packetRateHz: 0,
+    latencyMs: 0,
+  });
   const [lastRawPacket, setLastRawPacket] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -272,9 +282,22 @@ export default function App() {
     };
   }, []);
 
-  // Register Bluetooth & Wi-Fi Hardware Telemetry listeners
+  // Initialize active operator ML memory and IndexedDB account retention
   useEffect(() => {
-    bluetoothManager.setCallbacks(
+    const activeEmail = operatorSession?.email || 'operator@voltbms.io';
+    universalHardwareEngine.setAccountEmail(activeEmail);
+    universalHardwareEngine.setBaseline(data);
+    accountStorage.loadMlCheckpoint(activeEmail).then((ckpt) => {
+      if (ckpt) {
+        onlineMl.restoreCheckpoint(ckpt);
+      }
+    });
+  }, [operatorSession]);
+
+  // Register Universal Hardware Ingestion Engine (BLE, Wi-Fi, USB Serial, MQTT)
+  useEffect(() => {
+    universalHardwareEngine.setBaseline(data);
+    universalHardwareEngine.setCallbacks(
       (normalizedState, rawPayload) => {
         setLastRawPacket(typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload, null, 2));
         setData(normalizedState);
@@ -293,15 +316,86 @@ export default function App() {
           };
           return [...prevHist.slice(-49), point];
         });
+
+        // Instant hardware threshold safety checks
+        if (packVoltage > 29.2 || packVoltage < 20.0 || normalizedState.pack.max_imbalance > 0.045) {
+          setAlerts((prevAlerts) => {
+            const hasRecentAlert = prevAlerts.some((a) => a.type === 'Hardware Ingestion Engine' && a.status === 'ACTIVE');
+            if (!hasRecentAlert) {
+              const alertTitle = packVoltage > 29.2 ? 'Pack Overvoltage Exceeded' : packVoltage < 20.0 ? 'Pack Undervoltage Limit' : 'Cell Imbalance Threshold Exceeded';
+              const newAlert: AlertItem = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString(),
+                title: alertTitle,
+                severity: 'CRITICAL',
+                status: 'ACTIVE',
+                type: 'Hardware Ingestion Engine',
+                description: `Live hardware sensor reading crossed safe operating bounds: V=${packVoltage.toFixed(2)}V, ΔV=${(normalizedState.pack.max_imbalance * 1000).toFixed(0)}mV.`,
+                expected_range: '[20.0V - 29.2V], ΔV < 45mV',
+                observed_value: `${packVoltage.toFixed(2)}V`,
+                recommended_action: 'Reduce discharge current or engage passive cell balancing.'
+              };
+              return [newAlert, ...prevAlerts.slice(0, 19)];
+            }
+            return prevAlerts;
+          });
+        }
+      },
+      (stats) => {
+        const mappedStatus: HardwareStatus = stats.state === 'SCANNING' ? 'CONNECTING' : stats.state;
+
+        if (stats.transport === 'BLE') {
+          setBleStatus(mappedStatus);
+          setBleStats({
+            packetsReceived: stats.packetsReceived,
+            lastPacketTimestamp: stats.lastPacketTime,
+            packetRateHz: stats.packetRateHz,
+            latencyMs: stats.latencyMs
+          });
+          if (stats.state === 'CONNECTED' || stats.state === 'STREAMING') {
+            setHardwareSourceMode('BLUETOOTH');
+          } else if (hardwareSourceMode === 'BLUETOOTH') {
+            setHardwareSourceMode('SIMULATOR');
+          }
+        } else if (stats.transport === 'WIFI_WS' || stats.transport === 'WIFI_HTTP' || stats.transport === 'WIFI_MQTT') {
+          setWifiStatus(mappedStatus);
+          setWifiStats({
+            packetsReceived: stats.packetsReceived,
+            lastPacketTimestamp: stats.lastPacketTime,
+            packetRateHz: stats.packetRateHz,
+            latencyMs: stats.latencyMs
+          });
+          if (stats.state === 'CONNECTED' || stats.state === 'STREAMING') {
+            setHardwareSourceMode('WIFI');
+          } else if (hardwareSourceMode === 'WIFI') {
+            setHardwareSourceMode('SIMULATOR');
+          }
+        } else if (stats.transport === 'SERIAL_UART') {
+          setSerialStatus(mappedStatus);
+          setSerialStats({
+            packetsReceived: stats.packetsReceived,
+            lastPacketTimestamp: stats.lastPacketTime,
+            packetRateHz: stats.packetRateHz,
+            latencyMs: stats.latencyMs
+          });
+          if (stats.state === 'STREAMING' || stats.state === 'CONNECTED') {
+            setHardwareSourceMode('SERIAL');
+          } else if (hardwareSourceMode === 'SERIAL') {
+            setHardwareSourceMode('SIMULATOR');
+          }
+        }
+      }
+    );
+
+    // Fallback manager listeners
+    bluetoothManager.setCallbacks(
+      (normalizedState, rawPayload) => {
+        setLastRawPacket(typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload, null, 2));
+        setData(normalizedState);
       },
       (status, stats) => {
         setBleStatus(status);
         setBleStats(stats);
-        if (status === 'CONNECTED' || status === 'STREAMING') {
-          setHardwareSourceMode('BLUETOOTH');
-        } else if (hardwareSourceMode === 'BLUETOOTH') {
-          setHardwareSourceMode('SIMULATOR');
-        }
       }
     );
 
@@ -309,37 +403,18 @@ export default function App() {
       (normalizedState, rawPayload) => {
         setLastRawPacket(typeof rawPayload === 'string' ? rawPayload : JSON.stringify(rawPayload, null, 2));
         setData(normalizedState);
-        const packVoltage = normalizedState.pack.voltage;
-        const packCurrent = normalizedState.pack.current;
-        const packTemp = normalizedState.pack.avg_temp;
-        const sohVal = normalizedState.ai.soh;
-
-        setHistory((prevHist) => {
-          const point = {
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            voltage: Number(packVoltage.toFixed(2)),
-            current: Number(packCurrent.toFixed(1)),
-            temp: Number(packTemp.toFixed(1)),
-            soh: Number(sohVal.toFixed(1))
-          };
-          return [...prevHist.slice(-49), point];
-        });
       },
       (status, stats) => {
         setWifiStatus(status);
         setWifiStats(stats);
-        if (status === 'CONNECTED' || status === 'STREAMING') {
-          setHardwareSourceMode('WIFI');
-        } else if (hardwareSourceMode === 'WIFI') {
-          setHardwareSourceMode('SIMULATOR');
-        }
       }
     );
-  }, [hardwareSourceMode]);
+  }, [hardwareSourceMode, operatorSession]);
 
   // Handle Mock Test Packet Injection from Hardware modal
   const handleInjectMockPacket = (mockPayload: any) => {
     setLastRawPacket(typeof mockPayload === 'string' ? mockPayload : JSON.stringify(mockPayload, null, 2));
+    universalHardwareEngine.injectRawPacket(mockPayload);
     setData((prev) => {
       const normalized = normalizeTelemetryPayload(mockPayload, prev);
       const packVoltage = normalized.pack.voltage;
@@ -535,7 +610,15 @@ export default function App() {
           onOpenAlerts={() => setIsAlertsOpen(true)}
           onOpenHardwareConnect={() => setIsHardwareModalOpen(true)}
           hardwareMode={hardwareSourceMode}
-          hardwareStatus={hardwareSourceMode === 'BLUETOOTH' ? bleStatus : hardwareSourceMode === 'WIFI' ? wifiStatus : undefined}
+          hardwareStatus={
+            hardwareSourceMode === 'BLUETOOTH'
+              ? bleStatus
+              : hardwareSourceMode === 'WIFI'
+              ? wifiStatus
+              : hardwareSourceMode === 'SERIAL'
+              ? serialStatus
+              : undefined
+          }
           activeAlertCount={activeAlerts.length}
           onToggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           operatorSession={operatorSession}
@@ -640,7 +723,7 @@ export default function App() {
         onResolveAlert={handleResolveAlert}
       />
 
-      {/* Hardware Connectivity Modal (Web Bluetooth & Wi-Fi Direct) */}
+      {/* Hardware Connectivity Modal (Web Bluetooth, Wi-Fi Direct & USB Serial UART) */}
       <HardwareConnectModal
         isOpen={isHardwareModalOpen}
         onClose={() => setIsHardwareModalOpen(false)}
@@ -650,8 +733,11 @@ export default function App() {
         bleStats={bleStats}
         wifiStatus={wifiStatus}
         wifiStats={wifiStats}
+        serialStatus={serialStatus}
+        serialStats={serialStats}
         lastRawPacket={lastRawPacket}
         onInjectTestPacket={handleInjectMockPacket}
+        operatorEmail={operatorSession?.email || 'operator@voltbms.io'}
       />
     </div>
   );

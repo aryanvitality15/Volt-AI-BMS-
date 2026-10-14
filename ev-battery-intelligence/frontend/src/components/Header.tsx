@@ -152,6 +152,8 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-blue-600/20 border-blue-500/50 text-blue-300 shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-pulse'
                   : hardwareMode === 'WIFI'
                   ? 'bg-emerald-600/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse'
+                  : hardwareMode === 'SERIAL'
+                  ? 'bg-amber-600/20 border-amber-500/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse'
                   : 'bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-300 hover:text-white hover:border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
               }`}
               title="Connect ESP32 / Arduino / BLE BMS Hardware"
@@ -160,10 +162,20 @@ export const Header: React.FC<HeaderProps> = ({
                 <Bluetooth className="w-3.5 h-3.5 text-blue-400" />
               ) : hardwareMode === 'WIFI' ? (
                 <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+              ) : hardwareMode === 'SERIAL' ? (
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
               ) : (
                 <Radio className="w-3.5 h-3.5 text-cyan-400" />
               )}
-              <span>{hardwareMode === 'BLUETOOTH' ? 'BLE BMS' : hardwareMode === 'WIFI' ? 'WI-FI BMS' : 'HARDWARE I/O'}</span>
+              <span>
+                {hardwareMode === 'BLUETOOTH'
+                  ? 'BLE BMS'
+                  : hardwareMode === 'WIFI'
+                  ? 'WI-FI BMS'
+                  : hardwareMode === 'SERIAL'
+                  ? 'USB SERIAL'
+                  : 'HARDWARE I/O'}
+              </span>
             </button>
 
             {/* Alert Counter Button */}

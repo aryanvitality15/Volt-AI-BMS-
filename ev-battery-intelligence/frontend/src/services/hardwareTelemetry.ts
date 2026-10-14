@@ -24,7 +24,7 @@ export interface BluetoothCharacteristicEvent {
   [key: string]: any;
 }
 
-export type HardwareSourceMode = 'SIMULATOR' | 'BLUETOOTH' | 'WIFI';
+export type HardwareSourceMode = 'SIMULATOR' | 'BLUETOOTH' | 'WIFI' | 'SERIAL';
 export type HardwareStatus = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'STREAMING' | 'ERROR';
 export type WifiProtocol = 'WEBSOCKET' | 'HTTP_POLL' | 'MQTT_WSS';
 
@@ -1005,5 +1005,38 @@ void setup() {
 
 void loop() {
     server.handleClient();
+}`,
+
+  ESP32_USB_SERIAL: `/*
+ * VOLT AI BMS - ESP32 / Arduino Direct USB UART Telemetry Stream
+ * Connects directly to laptop USB port via Web Serial API at 115200 baud
+ * Ingested with sub-10ms latency by Volt BMS Universal Hardware Ingestion Engine
+ */
+#include <Arduino.h>
+
+void setup() {
+    // 115200 Baud rate for high-frequency low-latency UART telemetry
+    Serial.begin(115200);
+    while (!Serial) { delay(10); }
+    Serial.println("{\\"status\\":\\"ONLINE\\",\\"bms\\":\\"Volt BMS Direct USB Stream\\"}");
+}
+
+void loop() {
+    static unsigned long lastSend = 0;
+    // 10Hz high-resolution stream (every 100ms)
+    if (millis() - lastSend >= 100) {
+        lastSend = millis();
+
+        float packV = 25.62 + ((float)(random(-15, 15)) / 100.0);
+        float packI = 14.30 + ((float)(random(-20, 20)) / 10.0);
+        float tempC = 26.20 + ((float)(random(-10, 10)) / 10.0);
+        float soc = 65.4;
+
+        // Arbitrary JSON keys supported automatically by Volt BMS Schema Mapper
+        Serial.printf(
+            "{\\"voltage\\":%.2f,\\"current\\":%.2f,\\"temp\\":%.2f,\\"soc\\":%.1f,\\"cells\\":[3.205,3.201,3.208,3.202,3.200,3.204,3.202,3.205]}\\n",
+            packV, packI, tempC, soc
+        );
+    }
 }`
 };
