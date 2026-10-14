@@ -18,9 +18,12 @@ import {
   Server,
   Radio,
   Bluetooth,
-  Wifi
+  Wifi,
+  LogOut,
+  User
 } from 'lucide-react';
 import { HardwareSourceMode } from '../services/hardwareTelemetry';
+import { OperatorSession } from './VoltLoginGateway';
 
 export type NavTab =
   | 'dashboard'
@@ -44,6 +47,8 @@ interface SidebarProps {
   isLiveBackend?: boolean;
   onOpenHardwareConnect?: () => void;
   hardwareMode?: HardwareSourceMode;
+  operatorSession?: OperatorSession | null;
+  onSignOut?: () => void;
 }
 
 interface NavItem {
@@ -64,7 +69,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isConnected = true,
   isLiveBackend = false,
   onOpenHardwareConnect,
-  hardwareMode = 'SIMULATOR'
+  hardwareMode = 'SIMULATOR',
+  operatorSession,
+  onSignOut
 }) => {
   const navItems: NavItem[] = [
     {
@@ -251,6 +258,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           )}
 
+          {operatorSession && onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-rose-500/20 border border-white/[0.08] hover:border-rose-500/40 text-slate-300 hover:text-rose-300 flex items-center justify-center transition"
+              title={`Operator: ${operatorSession.name} (${operatorSession.role}) - Click to Sign Out`}
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          )}
+
           <button
             onClick={onToggleCollapse}
             className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition"
@@ -264,6 +281,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* System Status Footprint & Hardware Quick Connect */}
       {!isCollapsed && (
         <div className="p-3 border-t border-white/[0.07] bg-[#07080e]/80 font-mono text-[10px] space-y-2">
+          {/* Operator Profile in Sidebar */}
+          {operatorSession && (
+            <div className="p-2 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-500/25 to-indigo-500/25 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-300 flex-shrink-0">
+                  {operatorSession.name ? operatorSession.name.charAt(0).toUpperCase() : 'O'}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-semibold text-slate-200 truncate leading-tight">
+                    {operatorSession.name}
+                  </div>
+                  <div className={`text-[8.5px] font-mono font-bold leading-tight ${
+                    operatorSession.role === 'BMS Engineer' ? 'text-emerald-400' : operatorSession.role === 'Fleet Admin' ? 'text-purple-400' : 'text-amber-400'
+                  }`}>
+                    {operatorSession.role}
+                  </div>
+                </div>
+              </div>
+              {onSignOut && (
+                <button
+                  onClick={onSignOut}
+                  className="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 transition flex-shrink-0"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          )}
           {onOpenHardwareConnect && (
             <button
               onClick={onOpenHardwareConnect}

@@ -20,6 +20,7 @@ import { SelfLearningModal } from './components/SelfLearningModal';
 import { ParticleField } from './components/ParticleField';
 import { BatteryState, AlertItem, CellTelemetry } from './types';
 import { HardwareConnectModal } from './components/HardwareConnectModal';
+import { VoltLoginGateway, OperatorSession } from './components/VoltLoginGateway';
 import {
   bluetoothManager,
   wifiManager,
@@ -123,6 +124,35 @@ export default function App() {
   const [alerts, setAlerts] = useState<AlertItem[]>(() => clientSimulator.getAlerts());
   const [history, setHistory] = useState<Array<{ timestamp: string; voltage: number; current: number; temp: number; soh: number }>>([]);
   const [selectedCell, setSelectedCell] = useState<CellTelemetry | null>(null);
+
+  // Operator Authentication Session State (30-Day Persisted Session in localStorage)
+  const [operatorSession, setOperatorSession] = useState<OperatorSession | null>(() => {
+    try {
+      const stored = localStorage.getItem('volt_bms_session');
+      if (stored) {
+        const parsed: OperatorSession = JSON.parse(stored);
+        if (!parsed.sessionExpiry || parsed.sessionExpiry > Date.now()) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore
+    }
+    return null;
+  });
+
+  const handleLoginSuccess = (session: OperatorSession) => {
+    setOperatorSession(session);
+  };
+
+  const handleSignOut = () => {
+    try {
+      localStorage.removeItem('volt_bms_session');
+    } catch {
+      // Ignore
+    }
+    setOperatorSession(null);
+  };
 
   // Modals & Drawers
   const [isPassportOpen, setIsPassportOpen] = useState<boolean>(false);
@@ -425,6 +455,11 @@ export default function App() {
     }
   };
 
+  // Guard: If operator is not authenticated, render 3D Spatial VoltLoginGateway
+  if (!operatorSession) {
+    return <VoltLoginGateway onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen text-slate-100 flex font-sans relative bg-[#050508] overflow-x-hidden pinstripe-grid">
       {/* Ambient Mesh Backlight Orbs */}
@@ -449,6 +484,8 @@ export default function App() {
           isLiveBackend={isLiveBackend}
           onOpenHardwareConnect={() => setIsHardwareModalOpen(true)}
           hardwareMode={hardwareSourceMode}
+          operatorSession={operatorSession}
+          onSignOut={handleSignOut}
         />
       </div>
 
@@ -474,6 +511,8 @@ export default function App() {
               isLiveBackend={isLiveBackend}
               onOpenHardwareConnect={() => setIsHardwareModalOpen(true)}
               hardwareMode={hardwareSourceMode}
+              operatorSession={operatorSession}
+              onSignOut={handleSignOut}
             />
           </div>
         </div>
@@ -499,6 +538,8 @@ export default function App() {
           hardwareStatus={hardwareSourceMode === 'BLUETOOTH' ? bleStatus : hardwareSourceMode === 'WIFI' ? wifiStatus : undefined}
           activeAlertCount={activeAlerts.length}
           onToggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          operatorSession={operatorSession}
+          onSignOut={handleSignOut}
         />
 
         {/* Dynamic Viewport Router */}

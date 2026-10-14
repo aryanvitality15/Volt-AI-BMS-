@@ -17,10 +17,13 @@ import {
   Download,
   Bell,
   SlidersHorizontal,
-  Bluetooth
+  Bluetooth,
+  LogOut,
+  User
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { HardwareSourceMode, HardwareStatus } from '../services/hardwareTelemetry';
+import { OperatorSession } from './VoltLoginGateway';
 
 interface HeaderProps {
   scenario: string;
@@ -35,6 +38,8 @@ interface HeaderProps {
   hardwareStatus?: HardwareStatus;
   activeAlertCount: number;
   onToggleSidebar?: () => void;
+  operatorSession?: OperatorSession | null;
+  onSignOut?: () => void;
 }
 
 const SCENARIOS = [
@@ -64,7 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
   hardwareMode = 'SIMULATOR',
   hardwareStatus = 'DISCONNECTED',
   activeAlertCount,
-  onToggleSidebar
+  onToggleSidebar,
+  operatorSession,
+  onSignOut
 }) => {
   const [currentTime, setCurrentTime] = useState<string>('');
 
@@ -210,6 +217,37 @@ export const Header: React.FC<HeaderProps> = ({
               <FileText className="w-3 h-3 text-purple-400" />
               <span>PASSPORT</span>
             </button>
+
+            {/* Operator Profile & Sign Out Control */}
+            {operatorSession && (
+              <div className="flex items-center gap-2 pl-2 border-l border-white/[0.08]">
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+                  <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-cyan-500/25 to-indigo-500/25 border border-cyan-400/40 flex items-center justify-center text-[10px] font-bold text-cyan-300">
+                    {operatorSession.name ? operatorSession.name.charAt(0).toUpperCase() : 'O'}
+                  </div>
+                  <div className="hidden xl:flex flex-col text-left">
+                    <span className="text-[10px] font-semibold text-slate-200 leading-tight truncate max-w-[110px]">
+                      {operatorSession.name}
+                    </span>
+                    <span className={`text-[8px] font-mono font-bold leading-tight ${
+                      operatorSession.role === 'BMS Engineer' ? 'text-emerald-400' : operatorSession.role === 'Fleet Admin' ? 'text-purple-400' : 'text-amber-400'
+                    }`}>
+                      {operatorSession.role}
+                    </span>
+                  </div>
+                </div>
+
+                {onSignOut && (
+                  <button
+                    onClick={onSignOut}
+                    className="p-1.5 rounded-xl bg-white/[0.03] hover:bg-rose-500/15 border border-white/[0.08] hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition"
+                    title="Sign Out of Volt BMS Gateway"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -264,6 +302,17 @@ export const Header: React.FC<HeaderProps> = ({
               <FileText className="w-3 h-3 text-purple-400" />
               <span>PASSPORT</span>
             </button>
+
+            {onSignOut && (
+              <button
+                onClick={onSignOut}
+                className="px-2 py-1 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-[9px] font-orbitron font-bold text-rose-300 transition flex items-center gap-1"
+                title="Sign Out"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>EXIT</span>
+              </button>
+            )}
           </div>
         </div>
 
