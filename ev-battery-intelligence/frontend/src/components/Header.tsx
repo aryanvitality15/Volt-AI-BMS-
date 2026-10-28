@@ -85,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-[#07080e]/92 backdrop-blur-2xl border-b border-white/[0.07] px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 shadow-[0_10px_30px_rgba(0,0,0,0.7)] select-none">
+    <header className="sticky top-0 z-30 w-full bg-[#060914]/75 backdrop-blur-2xl border-b border-white/[0.10] px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 shadow-[0_10px_35px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.12)] select-none">
       <div className="w-full flex flex-col gap-2.5">
         
         {/* Tier 1: Main Bar */}

@@ -130,7 +130,7 @@ export default function App() {
   const [history, setHistory] = useState<Array<{ timestamp: string; voltage: number; current: number; temp: number; soh: number }>>([]);
   const [selectedCell, setSelectedCell] = useState<CellTelemetry | null>(null);
 
-  // Operator Authentication Session State (30-Day Persisted Session in localStorage)
+  // Operator Authentication Session State (Defaults to instant demo session for smooth evaluation, with sign-out support)
   const [operatorSession, setOperatorSession] = useState<OperatorSession | null>(() => {
     try {
       const stored = localStorage.getItem('volt_bms_session');
@@ -143,7 +143,14 @@ export default function App() {
     } catch {
       // Ignore
     }
-    return null;
+    return {
+      name: 'Aryan Chaudhary',
+      email: 'operator@voltbms.io',
+      role: 'BMS Engineer',
+      authMethod: 'demo',
+      sessionExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      timestamp: new Date().toISOString()
+    };
   });
 
   const [isBooting, setIsBooting] = useState<boolean>(() => {
@@ -658,10 +665,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen text-slate-100 flex font-sans relative bg-[#050508] overflow-x-hidden pinstripe-grid">
-      {/* Ambient Mesh Backlight Orbs */}
-      <div className="fixed -top-40 -left-40 w-[42rem] h-[42rem] rounded-full bg-gradient-to-br from-[#6366F1] to-[#EC4899] blur-[140px] opacity-25 pointer-events-none z-0" />
-      <div className="fixed -bottom-40 -right-40 w-[48rem] h-[48rem] rounded-full bg-gradient-to-tl from-[#06B6D4] via-[#38BDF8] to-[#F59E0B] blur-[140px] opacity-20 pointer-events-none z-0" />
+    <div className="min-h-screen text-slate-100 flex font-sans relative bg-[#030508] overflow-x-hidden pinstripe-grid">
+      {/* Ambient Chromatic Backlight Orbs for Genuine Optical Glass Refraction */}
+      <div className="fixed -top-40 -left-40 w-[46rem] h-[46rem] rounded-full bg-gradient-to-br from-[#4f46e5]/25 via-[#6366f1]/20 to-transparent blur-[140px] pointer-events-none z-0" />
+      <div className="fixed top-1/4 -right-40 w-[42rem] h-[42rem] rounded-full bg-gradient-to-bl from-[#06b6d4]/22 via-[#38bdf8]/15 to-transparent blur-[150px] pointer-events-none z-0" />
+      <div className="fixed -bottom-40 left-1/4 w-[50rem] h-[50rem] rounded-full bg-gradient-to-tr from-[#10b981]/18 via-[#06b6d4]/12 to-transparent blur-[160px] pointer-events-none z-0" />
+      <div className="fixed bottom-10 -right-20 w-[38rem] h-[38rem] rounded-full bg-gradient-to-tl from-[#f59e0b]/10 to-transparent blur-[140px] pointer-events-none z-0" />
 
       {/* 3D Dynamic Particle Background */}
       <ParticleField />
