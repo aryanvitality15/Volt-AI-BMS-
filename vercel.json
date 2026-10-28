@@ -1,5 +1,11 @@
 {
   "buildCommand": "cd ev-battery-intelligence/frontend && npm install && npm run build",
   "outputDirectory": "ev-battery-intelligence/frontend/dist",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
