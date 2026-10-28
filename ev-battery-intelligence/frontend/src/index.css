@@ -396,3 +396,92 @@ select option {
   background-color: #0a0b10;
   color: #e2e8f0;
 }
+
+/* ─── Volt AI Glassy Dashboard V5 Signature Glass Architecture ─── */
+.volt-glass-card {
+  background:
+    radial-gradient(130% 90% at 50% 0%, rgba(255, 255, 255, 0.05) 0%, rgba(6, 182, 212, 0.03) 40%, transparent 70%),
+    rgba(9, 10, 16, 0.82);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.25rem;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.4),
+    0 20px 40px -15px rgba(0, 0, 0, 0.75);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.volt-glass-card:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    0 25px 50px -12px rgba(6, 182, 212, 0.15),
+    0 0 25px rgba(6, 182, 212, 0.08);
+  transform: translateY(-2px);
+}
+
+.volt-glass-card-interactive {
+  position: relative;
+  overflow: hidden;
+}
+.volt-glass-card-interactive::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  transform: skewX(-20deg);
+  transition: all 0.75s ease;
+  pointer-events: none;
+}
+.volt-glass-card-interactive:hover::after {
+  left: 150%;
+}
+
+/* ─── Energy Pathway & Current Flow Keyframes ─── */
+@keyframes energy-flow-right {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes energy-flow-left {
+  0% { background-position: 200% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.energy-line-charging {
+  background: linear-gradient(90deg, transparent, #10b981, #34d399, transparent);
+  background-size: 200% 100%;
+  animation: energy-flow-left 1.6s linear infinite;
+}
+
+.energy-line-discharging {
+  background: linear-gradient(90deg, transparent, #06b6d4, #38bdf8, transparent);
+  background-size: 200% 100%;
+  animation: energy-flow-right 1.6s linear infinite;
+}
+
+/* Holographic glowing borders */
+.glow-border-cyan {
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.glow-border-emerald {
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* ─── Accessibility & Reduced Motion Overrides ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

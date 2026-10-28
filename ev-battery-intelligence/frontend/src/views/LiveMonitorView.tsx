@@ -86,7 +86,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Banner: SIMULATED TELEMETRY / LIVE TELEMETRY LABEL (PDF Page 14, 22) */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-orbitron font-bold text-xs shadow-[0_0_12px_rgba(16,185,129,0.3)]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -142,27 +142,27 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
 
       {/* Real-Time Metric Pills with Signature Aura Backdrops */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-3.5 rounded-2xl dark-gradient-card-cyan border border-white/[0.07] shadow-lg">
+        <div className="p-3.5 rounded-2xl dark-gradient-card-cyan volt-glass-card border border-white/[0.08] shadow-lg hover:-translate-y-1 transition-all">
           <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">VOLTAGE</span>
           <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{voltage.toFixed(2)} V</span>
           <span className="text-[8px] font-mono text-cyan-400">Min 24.8V │ Max 27.2V</span>
         </div>
-        <div className="p-3.5 rounded-2xl dark-gradient-card-emerald border border-white/[0.07] shadow-lg">
+        <div className="p-3.5 rounded-2xl dark-gradient-card-emerald volt-glass-card border border-white/[0.08] shadow-lg hover:-translate-y-1 transition-all">
           <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">CURRENT</span>
           <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{current.toFixed(1)} A</span>
           <span className="text-[8px] font-mono text-emerald-400">{current >= 0 ? 'Discharging' : 'Regen Charging'}</span>
         </div>
-        <div className="p-3.5 rounded-2xl dark-gradient-card-indigo border border-white/[0.07] shadow-lg">
+        <div className="p-3.5 rounded-2xl dark-gradient-card-indigo volt-glass-card border border-white/[0.08] shadow-lg hover:-translate-y-1 transition-all">
           <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">POWER DRAW</span>
           <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{powerKw.toFixed(2)} kW</span>
           <span className="text-[8px] font-mono text-purple-400">P = V × I</span>
         </div>
-        <div className="p-3.5 rounded-2xl dark-gradient-card-amber border border-white/[0.07] shadow-lg">
+        <div className="p-3.5 rounded-2xl dark-gradient-card-amber volt-glass-card border border-white/[0.08] shadow-lg hover:-translate-y-1 transition-all">
           <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">AVG TEMP</span>
           <span className="text-xl font-mono tabular-nums font-bold text-white block mt-0.5">{temp.toFixed(1)} °C</span>
           <span className="text-[8px] font-mono text-amber-400">ΔT +1.2°C Joule Heat</span>
         </div>
-        <div className="p-3.5 rounded-2xl dark-gradient-card-emerald border border-white/[0.07] shadow-lg col-span-2 sm:col-span-1">
+        <div className="p-3.5 rounded-2xl dark-gradient-card-emerald volt-glass-card border border-white/[0.08] shadow-lg col-span-2 sm:col-span-1 hover:-translate-y-1 transition-all">
           <span className="text-[9px] font-mono text-slate-400 block tracking-wider uppercase font-semibold">STATE OF CHARGE</span>
           <span className="text-xl font-mono tabular-nums font-bold text-emerald-400 block mt-0.5">{soc.toFixed(1)}%</span>
           <span className="text-[8px] font-mono text-slate-400">Coulomb Counting</span>
@@ -170,7 +170,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
       </div>
 
       {/* GRAPH 7: PACK VOLTAGE VS TIME (PDF Page 26) */}
-      <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center">
@@ -216,7 +216,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
       {/* GRAPH 8: CURRENT VS TIME & GRAPH 9: POWER (PDF Page 27) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 8: Current vs Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -253,7 +253,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
         </div>
 
         {/* GRAPH 9: Power vs Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/25 flex items-center justify-center">
@@ -299,7 +299,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
       {/* GRAPH 5: TEMPERATURE VS TIME & GRAPH 10: SOC VS TIME (PDF Pages 25, 28) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 5: Thermal Monitoring */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center">
@@ -344,7 +344,7 @@ export const LiveMonitorView: React.FC<LiveMonitorViewProps> = ({
         </div>
 
         {/* GRAPH 10: SOC vs Time */}
-        <div className="glass-panel rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">

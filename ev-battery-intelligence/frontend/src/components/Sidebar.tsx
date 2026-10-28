@@ -156,11 +156,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Zap className="w-4 h-4 fill-slate-950" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-orbitron font-extrabold text-sm tracking-wider text-gradient-display truncate">
-                VOLT<span className="text-cyan-400">AI</span> BMS
+              <span className="font-orbitron font-extrabold text-sm tracking-wider text-white truncate">
+                VOLT<span className="text-cyan-400">AI</span>
               </span>
-              <span className="text-[9px] font-mono text-slate-400 tracking-tight truncate">
-                EV Battery Intelligence
+              <span className="text-[9px] font-mono text-cyan-300/80 tracking-widest uppercase truncate">
+                Neural Battery Lab
               </span>
             </div>
           </div>

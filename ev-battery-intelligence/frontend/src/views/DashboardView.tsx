@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { BatteryState, CellTelemetry } from '../types';
 import { NavTab } from '../components/Sidebar';
+import { NeuralBatteryHero } from '../components/NeuralBatteryHero';
 
 interface DashboardViewProps {
   data: BatteryState;
@@ -141,7 +142,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-7 dark-gradient-card-emerald rounded-2xl p-4 sm:p-6 lg:p-7 relative overflow-hidden shadow-2xl flex flex-col justify-between"
+          className="lg:col-span-7 volt-glass-card volt-glass-card-interactive dark-gradient-card-emerald rounded-2xl p-4 sm:p-6 lg:p-7 relative overflow-hidden shadow-2xl flex flex-col justify-between"
         >
           {/* Header Row */}
           <div className="flex items-center justify-between relative z-10 mb-4 pb-3 border-b border-white/[0.07]">
@@ -309,7 +310,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-5 dark-gradient-card-indigo rounded-2xl p-4 sm:p-6 lg:p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden"
+          className="lg:col-span-5 volt-glass-card volt-glass-card-interactive dark-gradient-card-indigo rounded-2xl p-4 sm:p-6 lg:p-7 flex flex-col justify-between shadow-2xl relative overflow-hidden"
         >
           <div>
             {/* Header Row */}
@@ -386,6 +387,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* =========================================================
+          PHYSICAL TWIN: 2.5D NEURAL BATTERY PACK & CELL CLUSTER
+          ========================================================= */}
+      <NeuralBatteryHero
+        data={data}
+        onNavigateTo3D={() => onNavigate('battery-pack')}
+        onSelectCell={onSelectCell}
+      />
+
+      {/* =========================================================
           LEVEL 3: 8 STRUCTURED TECHNICAL PARAMETERS & TELEMETRY
           ========================================================= */}
       <div>
@@ -409,7 +419,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + idx * 0.03 }}
-              className={`${kpi.cardClass} rounded-2xl p-4 border border-white/[0.07] hover:border-white/20 transition-all duration-300 shadow-xl flex flex-col justify-between group`}
+              className={`${kpi.cardClass} volt-glass-card rounded-2xl p-4 border border-white/[0.08] hover:border-cyan-400/40 transition-all duration-300 shadow-xl flex flex-col justify-between group cursor-default hover:-translate-y-1`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-semibold">

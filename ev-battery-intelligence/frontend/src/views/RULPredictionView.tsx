@@ -114,7 +114,8 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
 
       {/* RUL HERO CARD & INTERACTIVE EOL THRESHOLD SLIDER (PDF Pages 24-25) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 dark-gradient-card-indigo rounded-2xl p-6 border border-white/[0.08] shadow-2xl relative overflow-hidden">
+        <div className="lg:col-span-8 volt-glass-card volt-glass-card-interactive rounded-2xl p-6 border border-white/[0.08] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-32 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
             <div>
               <span className="text-[10px] font-orbitron font-semibold uppercase tracking-widest text-slate-400 block">
@@ -125,20 +126,20 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
                   {remainingCycles}
                 </span>
                 <span className="text-lg font-orbitron text-slate-400">Remaining Cycles</span>
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 tabular-nums">
+                <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 tabular-nums">
                   ±35 cyc (95% CI)
                 </span>
               </div>
             </div>
 
             {/* Configurable EOL Threshold Slider */}
-            <div className="p-3.5 rounded-xl bg-[#050609]/90 border border-white/[0.08] w-full sm:w-72">
+            <div className="p-3.5 rounded-xl bg-[#050609]/90 border border-white/[0.08] w-full sm:w-72 shadow-inner">
               <div className="flex items-center justify-between text-[10px] font-mono tabular-nums mb-1.5">
-                <span className="text-slate-400 flex items-center gap-1">
+                <span className="text-slate-400 flex items-center gap-1.5">
                   <Sliders className="w-3 h-3 text-cyan-400" />
                   EOL Threshold SOH:
                 </span>
-                <strong className="text-white font-bold">{eolThreshold.toFixed(1)}%</strong>
+                <strong className="text-cyan-400 font-bold">{eolThreshold.toFixed(1)}%</strong>
               </div>
               <input
                 type="range"
@@ -149,7 +150,7 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
                 onChange={(e) => setEolThreshold(parseFloat(e.target.value))}
                 className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
               />
-              <div className="flex justify-between text-[8px] font-mono text-slate-500 mt-1">
+              <div className="flex justify-between text-[8px] font-mono text-slate-400 mt-1">
                 <span>65% (Aggressive)</span>
                 <span>70% (Standard)</span>
                 <span>80% (Conservative)</span>
@@ -159,24 +160,24 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
 
           {/* Forecast Milestones Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 relative z-10 font-mono tabular-nums">
-            <div className="p-3.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06]">
-              <span className="text-[9px] font-mono text-slate-500 block">IN 100 CYCLES</span>
+            <div className="p-3.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06] hover:border-cyan-500/30 transition-colors">
+              <span className="text-[9px] font-mono text-slate-400 block">IN 100 CYCLES</span>
               <span className="text-lg font-orbitron font-bold text-white block mt-0.5">
                 {sohIn100Cycles.toFixed(1)}% <span className="text-xs font-normal text-slate-400">SOH</span>
               </span>
               <span className="text-[8px] font-mono text-cyan-400">Cycle {currentCycle + 100} Target</span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06]">
-              <span className="text-[9px] font-mono text-slate-500 block">IN 500 CYCLES</span>
+            <div className="p-3.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06] hover:border-amber-500/30 transition-colors">
+              <span className="text-[9px] font-mono text-slate-400 block">IN 500 CYCLES</span>
               <span className="text-lg font-orbitron font-bold text-white block mt-0.5">
                 {sohIn500Cycles.toFixed(1)}% <span className="text-xs font-normal text-slate-400">SOH</span>
               </span>
               <span className="text-[8px] font-mono text-amber-400">Cycle {currentCycle + 500} Target</span>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06]">
-              <span className="text-[9px] font-mono text-slate-500 block">PROJECTED EOL CYCLE</span>
+            <div className="p-3.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06] hover:border-rose-500/30 transition-colors">
+              <span className="text-[9px] font-mono text-slate-400 block">PROJECTED EOL CYCLE</span>
               <span className="text-lg font-orbitron font-bold text-rose-400 block mt-0.5">
                 Cycle {calculatedEolCycle}
               </span>
@@ -186,14 +187,15 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
         </div>
 
         {/* RUL Predictive Health Stage Card */}
-        <div className="lg:col-span-4 dark-gradient-card-cyan rounded-2xl p-5 border border-white/[0.08] shadow-2xl flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-4 volt-glass-card volt-glass-card-interactive rounded-2xl p-5 border border-white/[0.08] shadow-2xl flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-60 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-orbitron font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
                 <Target className="w-4 h-4 text-emerald-400" />
                 LIFETIME DEGRADATION STAGE
               </span>
-              <span className="text-[8px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              <span className="text-[8px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 Stage 2 / 3
               </span>
             </div>
@@ -202,30 +204,30 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
               <div className="p-2.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06]">
                 <div className="flex items-center justify-between font-bold text-slate-300 mb-0.5">
                   <span>Stage 1: SEI Formation</span>
-                  <span className="text-emerald-400">COMPLETED</span>
+                  <span className="text-emerald-400 font-semibold">COMPLETED</span>
                 </div>
-                <span className="text-slate-500 text-[9px]">Cycles 0–100 (Initial 1.8% capacity burn-in)</span>
+                <span className="text-slate-400 text-[9px]">Cycles 0–100 (Initial 1.8% capacity burn-in)</span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
                 <div className="flex items-center justify-between font-bold text-emerald-300 mb-0.5">
                   <span>Stage 2: Linear Steady Fade</span>
-                  <span className="text-emerald-400">ACTIVE NOW</span>
+                  <span className="text-emerald-400 font-bold">ACTIVE NOW</span>
                 </div>
-                <span className="text-emerald-400/80 text-[9px]">Cycles 100–1200 (Nominal 0.02%/cycle rate)</span>
+                <span className="text-emerald-300/80 text-[9px]">Cycles 100–1200 (Nominal 0.02%/cycle rate)</span>
               </div>
 
               <div className="p-2.5 rounded-xl bg-[#07080e]/80 border border-white/[0.06]">
                 <div className="flex items-center justify-between font-bold text-slate-400 mb-0.5">
                   <span>Stage 3: Knee Point Acceleration</span>
-                  <span className="text-slate-500">FUTURE</span>
+                  <span className="text-slate-400">FUTURE</span>
                 </div>
-                <span className="text-slate-500 text-[9px]">Cycles 1200+ (Non-linear electrolyte dryout)</span>
+                <span className="text-slate-400 text-[9px]">Cycles 1200+ (Non-linear electrolyte dryout)</span>
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#050609]/90 border border-white/[0.08] text-[9.5px] font-mono text-slate-400 mt-4 relative z-10">
+          <div className="p-3 rounded-xl bg-[#050609]/90 border border-white/[0.08] text-[9.5px] font-mono text-slate-300 mt-4 relative z-10 shadow-inner">
             <span className="text-cyan-400 font-bold block mb-1">AI Recommendation:</span>
             Maintain charge rate &le; 1.0C and ambient temperature &le; 35°C to extend RUL by an estimated +180 cycles.
           </div>
@@ -233,7 +235,7 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
       </div>
 
       {/* GRAPH 3 & GRAPH 4: RUL FORECAST WITH CONFIDENCE INTERVAL (PDF Pages 24, 25) */}
-      <div className="obsidian-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center">
@@ -285,7 +287,7 @@ export const RULPredictionView: React.FC<RULPredictionViewProps> = ({ data }) =>
       {(() => {
         const ml = onlineMl.getMetrics();
         return (
-          <div className="p-5 rounded-2xl bg-[#0a0b10]/90 border border-white/[0.08] shadow-2xl backdrop-blur-2xl space-y-4">
+          <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">

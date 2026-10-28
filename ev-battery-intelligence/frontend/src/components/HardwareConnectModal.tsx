@@ -405,9 +405,11 @@ export const HardwareConnectModal: React.FC<HardwareConnectModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.94, opacity: 0, y: 20 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-4xl bg-[#0a0b10]/95 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 overflow-hidden border border-white/[0.1] shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[94vh] flex flex-col"
+          className="relative w-full max-w-4xl volt-glass-card rounded-2xl p-5 sm:p-6 overflow-hidden border border-cyan-500/20 shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[94vh] flex flex-col glow-border-cyan"
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] relative z-10">
             <div className="flex items-center gap-3">

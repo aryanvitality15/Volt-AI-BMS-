@@ -125,7 +125,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center text-purple-400">
             <FileText className="w-5 h-5" />
@@ -143,14 +143,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
         <div className="flex items-center gap-2">
           <button
             onClick={handleDownloadCsv}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[10px] font-orbitron font-bold transition"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#07080e]/90 hover:bg-white/[0.08] border border-white/[0.1] text-slate-200 text-[10px] font-orbitron font-bold transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-cyan-400" />
             <span>EXPORT CSV</span>
           </button>
           <button
             onClick={handlePrintReport}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-[10px] font-orbitron font-bold transition shadow-[0_0_12px_rgba(6,182,212,0.4)]"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-[10px] font-orbitron font-bold transition shadow-[0_0_15px_rgba(6,182,212,0.4)]"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>GENERATE PDF REPORT</span>
@@ -159,8 +159,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
       </div>
 
       {/* PRINTABLE REPORT PREVIEW (PDF Pages 15, 41) */}
-      <div className="glass-panel rounded-2xl p-6 border border-slate-700/50 shadow-2xl printable-area">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-5">
+      <div className="volt-glass-card rounded-2xl p-6 border border-white/[0.08] shadow-2xl printable-area">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4 mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold">
               <Zap className="w-5 h-5 fill-slate-950" />
@@ -182,7 +182,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
         </div>
 
         {/* Report Key Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900/80 border border-slate-800 mb-5 text-xs font-mono">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-[#07080e]/90 border border-white/[0.06] mb-5 text-xs font-mono">
           <div>
             <span className="text-slate-500 text-[9px] block">BATTERY IDENTIFIER</span>
             <strong className="text-white text-sm font-orbitron">{reportData?.battery_id || 'EV-BAT-001'}</strong>
@@ -203,23 +203,23 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
 
         {/* Detailed Report Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 text-xs font-mono">
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-850 space-y-2">
+          <div className="p-4 rounded-xl bg-[#050609]/80 border border-white/[0.06] space-y-2">
             <h4 className="text-[10px] font-orbitron font-bold text-cyan-400 uppercase tracking-wider">
               PACK SPECIFICATIONS & TOPOLOGY
             </h4>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Chemistry:</span>
               <strong className="text-white">Lithium Iron Phosphate (LFP)</strong>
             </div>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Nominal Pack Voltage:</span>
               <strong className="text-white">25.6 V (8 Series)</strong>
             </div>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Rated Capacity:</span>
               <strong className="text-white">40.0 Ah (1.024 kWh)</strong>
             </div>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Current Cycle Count:</span>
               <strong className="text-white">{pack.cycle || 624} Cycles</strong>
             </div>
@@ -229,23 +229,23 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
             </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-850 space-y-2">
+          <div className="p-4 rounded-xl bg-[#050609]/80 border border-white/[0.06] space-y-2">
             <h4 className="text-[10px] font-orbitron font-bold text-emerald-400 uppercase tracking-wider">
               AI MODEL & ROOT CAUSE SUMMARY
             </h4>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Model Architecture:</span>
               <strong className="text-white">Random Forest (v1.4.2)</strong>
             </div>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>R² Score / MAE:</span>
               <strong className="text-emerald-400">0.942 / 1.82%</strong>
             </div>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Primary Degradation Factor:</span>
               <strong className="text-white">Cycle Aging (41%)</strong>
             </div>
-            <div className="flex justify-between border-b border-slate-800/80 py-1 text-slate-300">
+            <div className="flex justify-between border-b border-white/[0.06] py-1 text-slate-300">
               <span>Secondary Degradation Factor:</span>
               <strong className="text-amber-400">Thermal Rise (32%)</strong>
             </div>
@@ -258,7 +258,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
       </div>
 
       {/* DATA SOURCE & SIMULATION CONTROLS (PDF Pages 41-43) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -308,12 +308,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
             <button
               key={sc.id}
               onClick={() => onScenarioChange && onScenarioChange(sc.id)}
-              className="p-3 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-700/60 hover:border-cyan-500/40 text-left transition group"
+              className="p-3 rounded-xl bg-[#07080e]/90 hover:bg-white/[0.06] border border-white/[0.08] hover:border-cyan-500/40 text-left transition group shadow-sm"
             >
               <span className="text-xs font-orbitron font-bold text-white group-hover:text-cyan-300 block mb-0.5">
                 {sc.label}
               </span>
-              <span className="text-[9px] font-mono text-slate-500 block">
+              <span className="text-[9px] font-mono text-slate-400 block">
                 {sc.desc}
               </span>
             </button>
@@ -322,7 +322,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
       </div>
 
       {/* HISTORICAL TELEMETRY LOGS TABLE (PDF Pages 39, 40) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-xs font-orbitron font-bold uppercase tracking-wider text-white">
@@ -332,13 +332,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ data, onScenarioChange
 
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Search timestamp, cycle..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 w-48 sm:w-60"
+                className="pl-8 pr-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.1] text-xs font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-400 w-48 sm:w-60 shadow-inner"
               />
             </div>
           </div>

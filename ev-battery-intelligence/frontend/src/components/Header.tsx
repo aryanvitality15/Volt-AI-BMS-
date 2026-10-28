@@ -105,8 +105,11 @@ export const Header: React.FC<HeaderProps> = ({
 
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-2 whitespace-nowrap">
-                <h1 className="text-xs sm:text-sm font-orbitron font-extrabold tracking-wider text-gradient-display">
-                  VOLT<span className="text-cyan-400">AI</span> <span className="hidden sm:inline">INTELLIGENCE</span>
+                <h1 className="text-xs sm:text-sm font-orbitron font-extrabold tracking-wider text-white flex items-center gap-1.5">
+                  <span className="text-white">VOLT</span>
+                  <span className="text-cyan-400">AI</span>
+                  <span className="text-white/30 font-mono text-[10px] sm:text-xs">/</span>
+                  <span className="hidden sm:inline text-slate-300 text-[10px] sm:text-xs tracking-wider">NEURAL BATTERY LAB</span>
                 </h1>
                 <span className="text-[8px] sm:text-[8.5px] font-orbitron uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
                   LFP 8S1P

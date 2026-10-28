@@ -85,7 +85,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-[#0a0b10]/85 border border-white/[0.08] shadow-2xl backdrop-blur-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
             <Layers className="w-5 h-5" />
@@ -125,7 +125,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
       </div>
 
       {/* 3D Viewport Component */}
-      <div className="obsidian-card rounded-2xl p-2 border border-white/[0.08] shadow-2xl overflow-hidden">
+      <div className="volt-glass-card rounded-2xl p-2 border border-white/[0.08] shadow-2xl overflow-hidden">
         <BatteryPack3D
           cells={cells}
           packCurrent={packCurrent}
@@ -138,7 +138,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
       </div>
 
       {/* Synchronized 2D Cell Matrix & In-Depth Telemetry Inspector (PDF Page 32) */}
-      <div className="obsidian-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">

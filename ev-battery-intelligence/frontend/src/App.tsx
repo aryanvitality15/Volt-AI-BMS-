@@ -18,6 +18,7 @@ import { WhatIfModal } from './components/WhatIfModal';
 import { AlertsDrawer } from './components/AlertsDrawer';
 import { SelfLearningModal } from './components/SelfLearningModal';
 import { ParticleField } from './components/ParticleField';
+import { NeuralBootSequence } from './components/NeuralBootSequence';
 import { BatteryState, AlertItem, CellTelemetry } from './types';
 import { HardwareConnectModal } from './components/HardwareConnectModal';
 import { VoltLoginGateway, OperatorSession } from './components/VoltLoginGateway';
@@ -145,16 +146,27 @@ export default function App() {
     return null;
   });
 
+  const [isBooting, setIsBooting] = useState<boolean>(() => {
+    try {
+      return !sessionStorage.getItem('volt_booted');
+    } catch {
+      return false;
+    }
+  });
+
   const handleLoginSuccess = (session: OperatorSession) => {
     setOperatorSession(session);
+    setIsBooting(true);
   };
 
   const handleSignOut = () => {
     try {
       localStorage.removeItem('volt_bms_session');
+      sessionStorage.removeItem('volt_booted');
     } catch {
       // Ignore
     }
+    setIsBooting(true);
     setOperatorSession(null);
   };
 
@@ -627,6 +639,22 @@ export default function App() {
   // Guard: If operator is not authenticated, render 3D Spatial VoltLoginGateway
   if (!operatorSession) {
     return <VoltLoginGateway onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Initial Experience: Cinematic Neural Boot Sequence (ESC to bypass, respects reduced-motion)
+  if (isBooting) {
+    return (
+      <NeuralBootSequence
+        onComplete={() => {
+          try {
+            sessionStorage.setItem('volt_booted', 'true');
+          } catch {
+            // Ignore
+          }
+          setIsBooting(false);
+        }}
+      />
+    );
   }
 
   return (

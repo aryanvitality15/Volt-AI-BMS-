@@ -103,7 +103,7 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-center text-blue-400">
             <Cpu className="w-5 h-5" />
@@ -119,11 +119,11 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
         </div>
 
         <div className="flex items-center gap-2 text-[10px] font-mono">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300">
             <span>R² COEFFICIENT: </span>
             <strong className="text-emerald-400 font-bold">{activeModel.r2_score}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300">
             <span>MEAN ABS ERROR: </span>
             <strong className="text-cyan-400 font-bold">{activeModel.mae}%</strong>
           </div>
@@ -132,40 +132,40 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
 
       {/* MODEL SPECIFICATION CARDS (PDF Pages 9, 36) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">TRAINING SAMPLES</span>
+        <div className="p-3.5 rounded-xl volt-glass-card volt-glass-card-interactive border border-white/[0.06]">
+          <span className="text-[9px] font-mono text-slate-400 block">TRAINING SAMPLES</span>
           <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{activeModel.training_samples.toLocaleString()}</span>
           <span className="text-[8px] font-mono text-slate-400">NASA & Oxford Datasets</span>
         </div>
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">INPUT FEATURES</span>
+        <div className="p-3.5 rounded-xl volt-glass-card volt-glass-card-interactive border border-white/[0.06]">
+          <span className="text-[9px] font-mono text-slate-400 block">INPUT FEATURES</span>
           <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{activeModel.features_count}</span>
           <span className="text-[8px] font-mono text-cyan-400">Multi-Physics Vectors</span>
         </div>
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">R² ACCURACY SCORE</span>
+        <div className="p-3.5 rounded-xl volt-glass-card volt-glass-card-interactive border border-white/[0.06]">
+          <span className="text-[9px] font-mono text-slate-400 block">R² ACCURACY SCORE</span>
           <span className="text-lg font-orbitron font-bold text-emerald-400 block mt-0.5">{activeModel.r2_score}</span>
-          <span className="text-[8px] font-mono text-emerald-400/80">94.2% Variance Explained</span>
+          <span className="text-[8px] font-mono text-emerald-300/80">94.2% Variance Explained</span>
         </div>
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">MAE (MEAN ABS ERROR)</span>
+        <div className="p-3.5 rounded-xl volt-glass-card volt-glass-card-interactive border border-white/[0.06]">
+          <span className="text-[9px] font-mono text-slate-400 block">MAE (MEAN ABS ERROR)</span>
           <span className="text-lg font-orbitron font-bold text-cyan-400 block mt-0.5">{activeModel.mae}%</span>
           <span className="text-[8px] font-mono text-slate-400">±1.82% SOH Tolerance</span>
         </div>
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">RMSE (ROOT MEAN SQ)</span>
+        <div className="p-3.5 rounded-xl volt-glass-card volt-glass-card-interactive border border-white/[0.06]">
+          <span className="text-[9px] font-mono text-slate-400 block">RMSE (ROOT MEAN SQ)</span>
           <span className="text-lg font-orbitron font-bold text-white block mt-0.5">{activeModel.rmse}%</span>
           <span className="text-[8px] font-mono text-slate-400">Low Outlier Sensitivity</span>
         </div>
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <span className="text-[9px] font-mono text-slate-500 block">INFERENCE LATENCY</span>
+        <div className="p-3.5 rounded-xl volt-glass-card volt-glass-card-interactive border border-white/[0.06]">
+          <span className="text-[9px] font-mono text-slate-400 block">INFERENCE LATENCY</span>
           <span className="text-lg font-orbitron font-bold text-purple-400 block mt-0.5">{activeModel.inference_latency_ms} ms</span>
           <span className="text-[8px] font-mono text-emerald-400">Real-Time Capable</span>
         </div>
       </div>
 
       {/* MODEL COMPARISON TABLE (PDF Page 36) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center">
@@ -232,7 +232,7 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
       {/* GRAPH 31: PREDICTED VS ACTUAL SOH & RESIDUAL PLOT (PDF Page 37) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Predicted vs Actual SOH Scatter Plot with Ideal Y=X Line */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-orbitron font-bold uppercase tracking-wider text-white">
               GRAPH 31: PREDICTED VS ACTUAL SOH (Y=X LINE)
@@ -249,7 +249,7 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
                 <XAxis dataKey="actual_soh" name="Actual SOH (%)" domain={[75, 100]} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <YAxis dataKey="predicted_soh" name="Predicted SOH (%)" domain={[75, 100]} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: '#0a0b10', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', backdropFilter: 'blur(16px)' }}
                 />
                 <ReferenceLine segment={[{ x: 75, y: 75 }, { x: 100, y: 100 }]} stroke="#475569" strokeDasharray="3 3" label={{ value: 'Ideal y=x', fill: '#94a3b8', fontSize: 9 }} />
                 <Scatter name="Test Cycles" data={predVsActual} fill="#06b6d4" />
@@ -259,7 +259,7 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
         </div>
 
         {/* Residual Plot */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-orbitron font-bold uppercase tracking-wider text-white">
               RESIDUAL PLOT (ERROR VS PREDICTED SOH)
@@ -276,7 +276,7 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
                 <XAxis dataKey="predicted_soh" name="Predicted SOH (%)" domain={[75, 100]} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <YAxis dataKey="residual" name="Residual (%)" domain={[-1.5, 1.5]} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: '#0a0b10', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', backdropFilter: 'blur(16px)' }}
                 />
                 <ReferenceLine y={0} stroke="#10b981" strokeDasharray="4 4" />
                 <Scatter name="Residuals" data={residuals} fill="#a855f7" />
@@ -287,7 +287,7 @@ export const MLModelView: React.FC<MLModelViewProps> = ({ data }) => {
       </div>
 
       {/* ERROR DISTRIBUTION HISTOGRAM (PDF Page 37) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xs font-orbitron font-bold uppercase tracking-wider text-white">
             PREDICTION ERROR DISTRIBUTION HISTOGRAM

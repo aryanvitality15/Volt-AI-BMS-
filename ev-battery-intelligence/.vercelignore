@@ -1,0 +1,14 @@
+node_modules
+frontend/node_modules
+frontend/dist
+.pytest_cache
+backend
+*.db
+*.sqlite
+*.sqlite3
+__pycache__
+*.pyc
+.git
+.vscode
+.env
+.env.local

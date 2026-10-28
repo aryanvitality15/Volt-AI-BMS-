@@ -89,13 +89,13 @@ export const AnomalyDetectionView: React.FC<AnomalyDetectionViewProps> = ({ data
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400">
             <ShieldAlert className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-orbitron font-bold uppercase tracking-wider text-gradient-display">
+            <h2 className="text-base font-orbitron font-bold uppercase tracking-wider text-white">
               BATTERY ANOMALY DETECTION & DIAGNOSTIC CENTER
             </h2>
             <span className="text-[10px] text-slate-400 font-mono">
@@ -126,7 +126,7 @@ export const AnomalyDetectionView: React.FC<AnomalyDetectionViewProps> = ({ data
       </div>
 
       {/* GRAPH 26: ANOMALY SCATTER PLOT (PDF Page 34) */}
-      <div className="dark-gradient-card-rose rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+      <div className="volt-glass-card dark-gradient-card-rose rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/25 flex items-center justify-center">
@@ -178,7 +178,7 @@ export const AnomalyDetectionView: React.FC<AnomalyDetectionViewProps> = ({ data
       </div>
 
       {/* ANOMALY TIMELINE & EVENT LOG (PDF Page 33) */}
-      <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center">

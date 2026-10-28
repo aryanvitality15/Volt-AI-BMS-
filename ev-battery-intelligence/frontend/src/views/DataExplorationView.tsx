@@ -406,7 +406,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 shadow-xl backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400">
             <BarChart3 className="w-5 h-5" />
@@ -427,7 +427,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
         </div>
 
         <div className="flex items-center gap-2 text-[10px] font-mono">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/60 text-slate-300 flex items-center gap-1.5">
+          <div className="px-3 py-1.5 rounded-xl bg-[#07080e]/90 border border-white/[0.08] text-slate-300 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-cyan-400" />
             <span>BUFFER: </span>
             <strong className="text-white font-bold">{dynamicCorrelation.sampleCount} Live Frames</strong>
@@ -441,7 +441,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
       </div>
 
       {/* GRAPH 33: INTERACTIVE CORRELATION HEATMAP MATRIX (PDF Page 39) */}
-      <div className="glass-panel rounded-2xl p-6 border border-slate-700/50 shadow-2xl">
+      <div className="volt-glass-card rounded-2xl p-6 border border-white/[0.08] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
           <div>
             <h3 className="text-xs font-orbitron font-bold uppercase tracking-wider text-white">
@@ -524,7 +524,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
       {/* GRAPH 6: TEMP VS SOH & GRAPH 11: SOC VS SOH (PDF Pages 26, 28) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 6: Temperature vs SOH */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/25 flex items-center justify-center">
@@ -551,7 +551,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
                 <XAxis dataKey="temp" name="Temperature (°C)" domain={['auto', 'auto']} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="°C" />
                 <YAxis dataKey="soh" name="SOH (%)" domain={['auto', 'auto']} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: '#0a0b10', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', backdropFilter: 'blur(16px)' }}
                 />
                 <Scatter name="Live Observations" data={tempVsSohData} fill="#f59e0b" />
               </ScatterChart>
@@ -560,7 +560,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
         </div>
 
         {/* GRAPH 11: SOC vs SOH */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center">
@@ -587,7 +587,7 @@ export const DataExplorationView: React.FC<DataExplorationViewProps> = ({ data }
                 <XAxis dataKey="soc" name="SOC (%)" domain={['auto', 'auto']} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <YAxis dataKey="soh" name="SOH (%)" domain={['auto', 'auto']} stroke="#64748b" tick={{ fontSize: 9, fill: '#64748b' }} unit="%" />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0b1329', borderColor: '#334155', borderRadius: '12px', fontSize: '11px' }}
+                  contentStyle={{ backgroundColor: '#0a0b10', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '11px', backdropFilter: 'blur(16px)' }}
                 />
                 <Scatter name="Live Observations" data={socVsSohData} fill="#06b6d4" />
               </ScatterChart>

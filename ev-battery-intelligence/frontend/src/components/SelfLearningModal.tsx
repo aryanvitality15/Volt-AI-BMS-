@@ -145,9 +145,11 @@ export const SelfLearningModal: React.FC<SelfLearningModalProps> = ({
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.92, opacity: 0, y: 20 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-4xl bg-[#0a0b10]/95 backdrop-blur-2xl rounded-2xl p-6 overflow-hidden border border-white/[0.1] shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[90vh] flex flex-col"
+          className="relative w-full max-w-4xl volt-glass-card rounded-2xl p-6 overflow-hidden border border-emerald-500/20 shadow-[0_25px_80px_rgba(0,0,0,0.85)] max-h-[90vh] flex flex-col glow-border-emerald"
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="absolute -top-24 -left-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] relative z-10">
             <div className="flex items-center gap-3">

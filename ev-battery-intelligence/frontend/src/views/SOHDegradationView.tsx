@@ -100,7 +100,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-[#07080e]/92 border border-white/[0.07] shadow-xl backdrop-blur-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl volt-glass-card border border-white/[0.08] shadow-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400">
             <TrendingDown className="w-5 h-5" />
@@ -128,7 +128,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
       </div>
 
       {/* GRAPH 1: SOH (%) VS CYCLE NUMBER (PDF Page 22) */}
-      <div className="dark-gradient-card-emerald rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+      <div className="volt-glass-card dark-gradient-card-emerald rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
@@ -183,7 +183,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
       {/* GRAPH 2: SOH VS CALENDAR TIME & GRAPH 12: CAPACITY FADE (PDF Pages 23, 29) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 2: SOH vs Calendar Time */}
-        <div className="dark-gradient-card-cyan rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card dark-gradient-card-cyan rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/25 flex items-center justify-center">
@@ -227,7 +227,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
         </div>
 
         {/* GRAPH 12: Cycle Aging & Capacity Fade */}
-        <div className="dark-gradient-card-rose rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card dark-gradient-card-rose rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/25 flex items-center justify-center">
@@ -273,7 +273,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
       {/* GRAPH 13: INTERNAL RESISTANCE GROWTH & GRAPH 14: V-SOC CURVES (PDF Pages 29, 30) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRAPH 13: Resistance Growth */}
-        <div className="dark-gradient-card-indigo rounded-2xl p-5 border border-white/[0.07] shadow-2xl">
+        <div className="volt-glass-card dark-gradient-card-indigo rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center">
@@ -322,7 +322,7 @@ export const SOHDegradationView: React.FC<SOHDegradationViewProps> = ({ data }) 
         </div>
 
         {/* GRAPH 14: Charge / Discharge Voltage vs SOC Curve */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-700/50 shadow-2xl">
+        <div className="volt-glass-card rounded-2xl p-5 border border-white/[0.08] shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">

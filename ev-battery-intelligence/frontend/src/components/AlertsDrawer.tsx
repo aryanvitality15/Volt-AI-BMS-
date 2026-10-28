@@ -94,9 +94,10 @@ export const AlertsDrawer: React.FC<AlertsDrawerProps> = ({
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 450, opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-lg h-full bg-[#0a0b10]/95 backdrop-blur-2xl border-l border-white/[0.08] p-6 flex flex-col overflow-hidden shadow-[-30px_0_80px_rgba(0,0,0,0.85)]"
+          className="w-full max-w-lg h-full volt-glass-card border-l border-white/[0.1] p-6 flex flex-col overflow-hidden shadow-[-30px_0_80px_rgba(0,0,0,0.85)] relative"
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="absolute top-0 right-0 w-80 h-40 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
           {/* Header */}
           <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] relative z-10">
             <div className="flex items-center gap-3">

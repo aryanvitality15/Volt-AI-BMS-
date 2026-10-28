@@ -40,3 +40,6 @@ backend/*.db-wal
 .idea/
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*

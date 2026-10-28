@@ -146,13 +146,14 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
 
       {/* Hero Explanation Question & Plain-English Text Card (PDF Page 34-35) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-7 dark-gradient-card-indigo rounded-2xl p-6 border border-white/[0.08] shadow-2xl relative overflow-hidden">
+        <div className="lg:col-span-7 volt-glass-card volt-glass-card-interactive rounded-2xl p-6 border border-white/[0.08] shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-32 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between mb-4 relative z-10">
             <h3 className="text-sm font-orbitron font-bold uppercase tracking-wider text-white flex items-center gap-2">
               <HelpCircle className="w-4 h-4 text-cyan-400" />
               WHY DID THE MODEL PREDICT {soh.toFixed(1)}% SOH?
             </h3>
-            <span className="text-[9px] font-mono px-2.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+            <span className="text-[9px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
               TreeSHAP Decomposition
             </span>
           </div>
@@ -181,14 +182,15 @@ export const AIExplainabilityView: React.FC<AIExplainabilityViewProps> = ({ data
         </div>
 
         {/* Machine-Generated AI Explanation (PDF Page 35) */}
-        <div className="lg:col-span-5 dark-gradient-card-emerald rounded-2xl p-6 border border-white/[0.08] shadow-2xl flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-5 volt-glass-card volt-glass-card-interactive rounded-2xl p-6 border border-white/[0.08] shadow-2xl flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-60 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-orbitron font-bold uppercase tracking-wider text-white flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-400" />
                 AI-GENERATED EXPLANATION
               </span>
-              <span className="text-[8px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              <span className="text-[8px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 Natural Language Synthesis
               </span>
             </div>
