@@ -189,11 +189,11 @@ function CameraController({
   useEffect(() => {
     if (targetPosition) {
       isTransitioningRef.current = true;
-      targetLookAtRef.current.set(...targetPosition);
+      targetLookAtRef.current.set(targetPosition[0], 0.25, targetPosition[2]);
       targetCamPosRef.current.set(
-        targetPosition[0] + 1.2,
-        targetPosition[1] + 1.4,
-        targetPosition[2] + 2.0
+        targetPosition[0] + 2.0,
+        2.4,
+        targetPosition[2] + 2.6
       );
     }
   }, [targetPosition]);
@@ -437,45 +437,47 @@ function PrismaticCell({
         </group>
       )}
 
-      {/* 8. 3D Floating Warning Beacon Graphic for Problematic / Defective Cell */}
+      {/* 8. 3D Warning Beacon Graphic for Problematic / Defective Cell (Anchored directly on cell) */}
       {isProblematic && (
-        <group position={[0, h / 2 + 0.14, 0]}>
+        <group position={[0, h / 2 + 0.04, 0]}>
+          {/* Glowing Warning Rings on Cell Terminal Deck */}
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[w * 0.42, w * 0.58, 32]} />
+            <ringGeometry args={[w * 0.35, w * 0.48, 32]} />
             <meshBasicMaterial color="#ef4444" transparent opacity={0.85} />
           </mesh>
-          <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[w * 0.58, w * 0.74, 32]} />
+          <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[w * 0.48, w * 0.62, 32]} />
             <meshBasicMaterial color="#f97316" transparent opacity={0.5} />
           </mesh>
 
-          <Html position={[0, 0.45, 0]} center distanceFactor={6.2}>
-            <div className="pointer-events-none select-none flex flex-col items-center animate-bounce">
-              <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white font-mono text-[11px] font-extrabold shadow-[0_0_25px_rgba(239,68,68,0.95)] border-2 border-white flex items-center gap-1.5 whitespace-nowrap">
-                <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                <span>⚠️ FAULT CELL #{cell.cell_id}</span>
-                <span className="px-1.5 py-0.5 rounded bg-black/50 text-[10px] text-amber-200">
-                  {highlightReason || (tempVal > 33 ? `${tempVal.toFixed(1)}°C Hotspot` : `${voltVal.toFixed(3)}V`)}
+          {/* Compact Anchored Fault Pin directly on cell terminal */}
+          <Html position={[0, 0.12, 0]} center distanceFactor={7.5} zIndexRange={[120, 0]}>
+            <div className="pointer-events-none select-none flex flex-col items-center">
+              <div className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white font-mono text-[10px] font-extrabold shadow-[0_0_18px_rgba(239,68,68,0.95)] border border-white flex items-center gap-1.5 whitespace-nowrap">
+                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                <span>FAULT: C{cell.cell_id}</span>
+                <span className="px-1.5 py-0.2 rounded bg-black/60 text-[9px] text-amber-200">
+                  {tempVal > 33 ? `${tempVal.toFixed(1)}°C` : `${voltVal.toFixed(3)}V`}
                 </span>
               </div>
-              <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-red-600 drop-shadow-[0_2px_6px_rgba(239,68,68,0.9)]" />
+              <div className="w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[7px] border-t-red-600 drop-shadow-[0_2px_4px_rgba(239,68,68,0.8)]" />
             </div>
           </Html>
         </group>
       )}
 
-      {/* 9. 3D Floating Cell Badge in Cell Inspect Mode */}
-      {(mode === 'CELL_INSPECT' || isSelected) && !isProblematic && (
-        <Html position={[0, h / 2 + 0.18, 0]} center distanceFactor={6}>
+      {/* 9. 3D Floating Cell Badge ONLY for the single Selected or Hovered Cell (Prevents clutter) */}
+      {(isSelected || isHovered) && !isProblematic && (
+        <Html position={[0, h / 2 + 0.08, 0]} center distanceFactor={8} zIndexRange={[100, 0]}>
           <div
-            className={`pointer-events-none select-none font-mono text-[9px] font-bold px-2 py-0.5 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap shadow-xl flex items-center gap-1.5 ${
+            className={`pointer-events-none select-none font-mono text-[9.5px] font-bold px-2.5 py-1 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap shadow-xl flex items-center gap-1.5 ${
               isSelected
-                ? 'bg-cyan-500/90 text-slate-950 border-white shadow-[0_0_16px_rgba(6,182,212,0.8)] scale-110'
-                : 'bg-[#040911]/90 text-cyan-300 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                ? 'bg-cyan-500 text-slate-950 border-white shadow-[0_0_16px_rgba(6,182,212,0.8)]'
+                : 'bg-[#040911]/95 text-cyan-300 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
             }`}
           >
-            <span>C{cell.cell_id}</span>
-            <span className="text-[8px] opacity-90">{voltVal.toFixed(2)}V</span>
+            <span>CELL #{cell.cell_id}</span>
+            <span className="text-white opacity-95">{(cell.voltage ?? 3.28).toFixed(3)}V</span>
           </div>
         </Html>
       )}
@@ -923,11 +925,11 @@ function AssembledBatteryPack({
         {/* Upper Protective Cover Lid */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[packWidth + 0.04, 0.06, packLength + 0.04]} />
-          {mode === 'XRAY' ? (
+          {mode === 'XRAY' || mode === 'THERMAL' || mode === 'CELL_INSPECT' ? (
             <meshPhysicalMaterial
               color="#38bdf8"
               transparent
-              opacity={0.16}
+              opacity={0.2}
               roughness={0.1}
               metalness={0.1}
               clearcoat={1.0}
@@ -946,7 +948,7 @@ function AssembledBatteryPack({
           <Edges
             color="#38bdf8"
             threshold={25}
-            opacity={mode === 'XRAY' ? 0.75 : 0.45}
+            opacity={mode === 'XRAY' || mode === 'THERMAL' || mode === 'CELL_INSPECT' ? 0.75 : 0.45}
             transparent
           />
         </mesh>
@@ -1134,12 +1136,6 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
                   ((Math.floor((selectedCell.cell_id - 1) / topoInfo.cellsPerModule)) - (topoInfo.modules - 1) / 2) * 0.7,
                   0,
                   (((selectedCell.cell_id - 1) % topoInfo.cellsPerModule) - (topoInfo.cellsPerModule - 1) / 2) * 0.195
-                ]
-              : highlightedCellId
-              ? [
-                  ((Math.floor((highlightedCellId - 1) / topoInfo.cellsPerModule)) - (topoInfo.modules - 1) / 2) * 0.7,
-                  0,
-                  (((highlightedCellId - 1) % topoInfo.cellsPerModule) - (topoInfo.cellsPerModule - 1) / 2) * 0.195
                 ]
               : null
           }

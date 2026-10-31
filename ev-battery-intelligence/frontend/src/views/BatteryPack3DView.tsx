@@ -571,7 +571,10 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
               <button
                 onClick={() => {
                   const cell = displayCells.find((c) => c.cell_id === problemCellInfo.cellId);
-                  if (cell) handleCellClick(cell);
+                  if (cell) {
+                    handleCellClick(cell);
+                    if (explodedProgress < 0.2) setExplodedProgress(0.3);
+                  }
                 }}
                 className="px-3.5 py-2 rounded-xl text-xs font-orbitron font-bold tracking-wider bg-rose-500 hover:bg-rose-600 text-white flex items-center gap-1.5 shadow-[0_0_16px_rgba(244,63,94,0.4)] transition-all"
               >
@@ -619,7 +622,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
                   id: 'THERMAL',
                   label: '🌡️ Heat Check',
                   desc: 'Color by temperature',
-                  explode: 0
+                  explode: 0.15
                 },
                 {
                   id: 'EXPLODED',
