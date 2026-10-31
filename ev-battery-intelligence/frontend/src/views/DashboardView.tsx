@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { BatteryState, CellTelemetry } from '../types';
 import { NavTab } from '../components/Sidebar';
-import { NeuralBatteryHero } from '../components/NeuralBatteryHero';
 
 interface DashboardViewProps {
   data: BatteryState;
@@ -385,15 +384,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </motion.div>
       </div>
-
-      {/* =========================================================
-          PHYSICAL TWIN: 2.5D NEURAL BATTERY PACK & CELL CLUSTER
-          ========================================================= */}
-      <NeuralBatteryHero
-        data={data}
-        onNavigateTo3D={() => onNavigate('battery-pack')}
-        onSelectCell={onSelectCell}
-      />
 
       {/* =========================================================
           LEVEL 3: 8 STRUCTURED TECHNICAL PARAMETERS & TELEMETRY

@@ -226,6 +226,8 @@ interface PrismaticCellProps {
   dimensions: [number, number, number]; // [width, height, depth]
   isSelected: boolean;
   isHovered: boolean;
+  isHighlighted?: boolean;
+  highlightReason?: string;
   mode: VisualizationMode;
   avgVoltage: number;
   packSoh: number;
@@ -240,6 +242,8 @@ function PrismaticCell({
   dimensions,
   isSelected,
   isHovered,
+  isHighlighted = false,
+  highlightReason,
   mode,
   avgVoltage,
   packSoh,
@@ -252,8 +256,9 @@ function PrismaticCell({
 
   const tempVal = cell.temp_c ?? (cell as any).temperature ?? 26.0;
   const voltVal = cell.voltage ?? 3.28;
-  const cellSoh = cell.soc ?? packSoh ?? 87.4; // If individual SOH unavailable, display derived health
+  const cellSoh = cell.soc ?? packSoh ?? 87.4;
   const isCritical = tempVal >= 52 || Math.abs(voltVal - avgVoltage) >= 0.12;
+  const isProblematic = isHighlighted || isCritical || tempVal >= 34 || Math.abs(voltVal - avgVoltage) >= 0.045;
 
   // Material color resolution depending on active visualization mode
   const cellMaterial = useMemo(() => {
@@ -312,6 +317,19 @@ function PrismaticCell({
       );
     }
 
+    // Normal / Exploded / Inspect: Highlight defective cell with energetic warning pulse
+    if (isProblematic) {
+      return (
+        <meshStandardMaterial
+          color={tempVal >= 40 ? '#ef4444' : '#f97316'}
+          emissive={tempVal >= 40 ? '#dc2626' : '#ea580c'}
+          emissiveIntensity={isSelected ? 1.6 : 1.15}
+          metalness={0.75}
+          roughness={0.25}
+        />
+      );
+    }
+
     // NORMAL / EXPLODED / CELL_INSPECT: Realistic Metallic Anodized PET Film
     return (
       <meshStandardMaterial
@@ -322,7 +340,7 @@ function PrismaticCell({
         roughness={0.22}
       />
     );
-  }, [mode, tempVal, voltVal, cellSoh, isSelected, isHovered, isCritical, avgVoltage]);
+  }, [mode, tempVal, voltVal, cellSoh, isSelected, isHovered, isCritical, isProblematic, avgVoltage]);
 
   // Exploded elevation offset for cell layer (elevates upward in exploded view)
   const cellYOffset = explodeFactor * 0.42;
@@ -419,8 +437,35 @@ function PrismaticCell({
         </group>
       )}
 
-      {/* 8. 3D Floating Cell Badge in Cell Inspect Mode */}
-      {(mode === 'CELL_INSPECT' || isSelected) && (
+      {/* 8. 3D Floating Warning Beacon Graphic for Problematic / Defective Cell */}
+      {isProblematic && (
+        <group position={[0, h / 2 + 0.14, 0]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[w * 0.42, w * 0.58, 32]} />
+            <meshBasicMaterial color="#ef4444" transparent opacity={0.85} />
+          </mesh>
+          <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[w * 0.58, w * 0.74, 32]} />
+            <meshBasicMaterial color="#f97316" transparent opacity={0.5} />
+          </mesh>
+
+          <Html position={[0, 0.45, 0]} center distanceFactor={6.2}>
+            <div className="pointer-events-none select-none flex flex-col items-center animate-bounce">
+              <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white font-mono text-[11px] font-extrabold shadow-[0_0_25px_rgba(239,68,68,0.95)] border-2 border-white flex items-center gap-1.5 whitespace-nowrap">
+                <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                <span>⚠️ FAULT CELL #{cell.cell_id}</span>
+                <span className="px-1.5 py-0.5 rounded bg-black/50 text-[10px] text-amber-200">
+                  {highlightReason || (tempVal > 33 ? `${tempVal.toFixed(1)}°C Hotspot` : `${voltVal.toFixed(3)}V`)}
+                </span>
+              </div>
+              <div className="w-0 h-0 border-l-[7px] border-l-transparent border-r-[7px] border-r-transparent border-t-[10px] border-t-red-600 drop-shadow-[0_2px_6px_rgba(239,68,68,0.9)]" />
+            </div>
+          </Html>
+        </group>
+      )}
+
+      {/* 9. 3D Floating Cell Badge in Cell Inspect Mode */}
+      {(mode === 'CELL_INSPECT' || isSelected) && !isProblematic && (
         <Html position={[0, h / 2 + 0.18, 0]} center distanceFactor={6}>
           <div
             className={`pointer-events-none select-none font-mono text-[9px] font-bold px-2 py-0.5 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap shadow-xl flex items-center gap-1.5 ${
@@ -503,6 +548,8 @@ interface AssembledBatteryPackProps {
   selectedModuleId: number | null;
   avgVoltage: number;
   packSoh: number;
+  highlightedCellId?: number | null;
+  highlightReason?: string;
   onSelectCell: (cell: CellTelemetry) => void;
   onSelectModule: (modIndex: number) => void;
 }
@@ -516,6 +563,8 @@ function AssembledBatteryPack({
   selectedModuleId,
   avgVoltage,
   packSoh,
+  highlightedCellId = null,
+  highlightReason,
   onSelectCell,
   onSelectModule
 }: AssembledBatteryPackProps) {
@@ -784,6 +833,8 @@ function AssembledBatteryPack({
           dimensions={[cellW, cellH, cellD]}
           isSelected={selectedCellId === cell.cell_id}
           isHovered={hoveredCellId === cell.cell_id}
+          isHighlighted={highlightedCellId === cell.cell_id}
+          highlightReason={highlightReason}
           mode={mode}
           avgVoltage={avgVoltage}
           packSoh={packSoh}
@@ -943,6 +994,8 @@ export interface BatteryPack3DProps {
   explodedProgress?: number; // 0.0 to 1.0
   onExplodedProgressChange?: (p: number) => void;
   isLiveConnected?: boolean;
+  highlightedCellId?: number | null;
+  highlightReason?: string;
 }
 
 export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
@@ -960,7 +1013,9 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
   onModeChange,
   explodedProgress = 0,
   onExplodedProgressChange,
-  isLiveConnected = true
+  isLiveConnected = true,
+  highlightedCellId = null,
+  highlightReason
 }) => {
   const [internalTopology, setInternalTopology] = useState<PackTopology>(activeTopology);
   const [internalMode, setInternalMode] = useState<VisualizationMode>(mode);
@@ -1073,7 +1128,21 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
         <CameraController
           viewPreset={viewPreset}
           onPresetComplete={() => setViewPreset(null)}
-          targetPosition={null}
+          targetPosition={
+            selectedCell
+              ? [
+                  ((Math.floor((selectedCell.cell_id - 1) / topoInfo.cellsPerModule)) - (topoInfo.modules - 1) / 2) * 0.7,
+                  0,
+                  (((selectedCell.cell_id - 1) % topoInfo.cellsPerModule) - (topoInfo.cellsPerModule - 1) / 2) * 0.195
+                ]
+              : highlightedCellId
+              ? [
+                  ((Math.floor((highlightedCellId - 1) / topoInfo.cellsPerModule)) - (topoInfo.modules - 1) / 2) * 0.7,
+                  0,
+                  (((highlightedCellId - 1) % topoInfo.cellsPerModule) - (topoInfo.cellsPerModule - 1) / 2) * 0.195
+                ]
+              : null
+          }
           controlsRef={controlsRef}
         />
 
@@ -1087,6 +1156,8 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
           selectedModuleId={selectedModule}
           avgVoltage={meanVoltage}
           packSoh={packSoh}
+          highlightedCellId={highlightedCellId}
+          highlightReason={highlightReason}
           onSelectCell={handleCellClick}
           onSelectModule={handleModuleClick}
         />
