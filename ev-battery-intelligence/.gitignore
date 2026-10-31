@@ -33,6 +33,8 @@ build/
 backend/*.db
 backend/*.db-shm
 backend/*.db-wal
+*.backup
+backend/*.backup
 
 # Logs & Temporary
 *.log

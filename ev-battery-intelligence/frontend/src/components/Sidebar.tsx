@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Zap,
   Sliders,
-  ShieldAlert,
+  Database,
   Server,
   Radio,
   Bluetooth,
@@ -29,6 +29,7 @@ export type NavTab =
   | 'dashboard'
   | 'live-monitor'
   | 'battery-pack'
+  | 'data-history'
   | 'soh-degradation'
   | 'rul-prediction'
   | 'anomaly-detection'
@@ -93,6 +94,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: '3D Battery Pack',
       subLabel: 'Digital Twin & Shaders',
       icon: <Layers className="w-4 h-4" />
+    },
+    {
+      id: 'data-history',
+      label: 'Database History',
+      subLabel: 'Persisted Records & Audit',
+      icon: <Database className="w-4 h-4" />
     },
     {
       id: 'soh-degradation',

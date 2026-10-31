@@ -15,7 +15,7 @@ from datetime import datetime
 import os
 import math
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -31,7 +31,36 @@ from database import (
     get_latest_cells_telemetry,
     get_recent_history,
     get_alerts,
-    resolve_alert
+    resolve_alert,
+    create_user,
+    get_user_by_email,
+    get_user_by_id,
+    update_user_password,
+    update_user_last_login,
+    create_session,
+    get_session_user,
+    delete_session,
+    delete_user_sessions,
+    create_password_reset,
+    verify_password_reset_token,
+    mark_password_reset_used,
+    get_user_batteries,
+    verify_battery_ownership,
+    create_user_battery,
+    get_battery_history_filtered,
+    acknowledge_alert,
+    get_battery_metadata
+)
+from auth import (
+    hash_password,
+    verify_password,
+    auth_rate_limiter,
+    reset_rate_limiter,
+    RegisterRequest,
+    LoginRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    BatteryCreateRequest
 )
 from simulator import simulator
 from mqtt_client import mqtt_manager
@@ -179,11 +208,13 @@ def process_incoming_telemetry(pack_data: Dict[str, Any]):
             elif "internal_resistance" not in c and "internal_resistance_mohm" in c:
                 c["internal_resistance"] = c["internal_resistance_mohm"]
 
+        data_source = pack_data.get("data_source", "PHYSICAL")
+
         # 1. Feature Engineering & Preprocessing
         features = pipeline.extract_features(pack_data)
         
         # 2. Database Insertion
-        insert_cell_telemetry(cells)
+        insert_cell_telemetry(cells, data_source=data_source)
         
         # 3. AI / ML Inference
         # Model 1: SOH Estimation
@@ -237,7 +268,7 @@ def process_incoming_telemetry(pack_data: Dict[str, Any]):
             "risk_score": risk_result["score"],
             "risk_level": risk_result["level"]
         }
-        insert_pack_telemetry(pack_record)
+        insert_pack_telemetry(pack_record, data_source=data_source)
         
         # 5. Root-Cause Analysis (RCA)
         rca_result = rca_engine.analyze(fault_class, features, cells, fault_conf)
@@ -320,6 +351,7 @@ def background_telemetry_loop():
         try:
             # 1. Generate physics step
             pack_telemetry = simulator.step(dt=settings.SIMULATION_INTERVAL_SEC)
+            pack_telemetry["data_source"] = "SIMULATED"
             
             # 2. Publish to HiveMQ
             mqtt_manager.publish_telemetry(pack_telemetry)
@@ -354,6 +386,335 @@ def on_startup():
     # Start background generation thread
     threading.Thread(target=background_telemetry_loop, daemon=True).start()
     logger.info("EV Battery Intelligence backend started successfully.")
+
+# =====================================================================
+# AUTHENTICATION & SECURITY DEPENDENCIES & ENDPOINTS
+# =====================================================================
+
+def get_current_user(
+    authorization: Optional[str] = Header(None),
+    x_session_token: Optional[str] = Header(None)
+) -> Dict[str, Any]:
+    token = None
+    if authorization:
+        if authorization.lower().startswith("bearer "):
+            token = authorization[7:].strip()
+        else:
+            token = authorization.strip()
+    elif x_session_token:
+        token = x_session_token.strip()
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required. Please sign in.")
+
+    user = get_session_user(token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Session expired or invalid. Please sign in again.")
+    return user
+
+def get_optional_user(
+    authorization: Optional[str] = Header(None),
+    x_session_token: Optional[str] = Header(None)
+) -> Optional[Dict[str, Any]]:
+    token = None
+    if authorization:
+        if authorization.lower().startswith("bearer "):
+            token = authorization[7:].strip()
+        else:
+            token = authorization.strip()
+    elif x_session_token:
+        token = x_session_token.strip()
+
+    if not token:
+        return None
+    return get_session_user(token)
+
+@app.post("/api/auth/register")
+def register_endpoint(req: RegisterRequest, request: Request):
+    """Registers a new BMS operator account with PBKDF2 hashed password and creates an active session."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    allowed, retry_after = auth_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"Too many registration requests. Please wait {retry_after}s.")
+
+    try:
+        pw_hash = hash_password(req.password)
+        user_info = create_user(
+            name=req.name,
+            email=req.email,
+            password_hash=pw_hash,
+            role=req.role or "BMS Engineer"
+        )
+        session_token = create_session(
+            user_id=user_info["user_id"],
+            duration_days=30,
+            user_agent=request.headers.get("user-agent"),
+            ip_address=client_ip
+        )
+        return {
+            "status": "SUCCESS",
+            "message": "Operator account registered and primary battery pack provisioned.",
+            "session_token": session_token,
+            "user": {
+                "user_id": user_info["user_id"],
+                "name": user_info["name"],
+                "email": user_info["email"],
+                "role": user_info["role"],
+                "created_at": user_info["created_at"],
+                "primary_battery_id": user_info["primary_battery_id"]
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Registration error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during account creation.")
+
+@app.post("/api/auth/login")
+def login_endpoint(req: LoginRequest, request: Request):
+    """Authenticates operator credentials against persistent database and generates session token."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    rate_key = f"{client_ip}:{req.email}"
+    allowed, retry_after = auth_rate_limiter.is_allowed(rate_key)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"Too many failed login attempts. Please wait {retry_after}s.")
+
+    user = get_user_by_email(req.email)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    if not verify_password(req.password, user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    auth_rate_limiter.reset(rate_key)
+    update_user_last_login(user["user_id"])
+    duration = 30 if req.remember_me else 1
+    session_token = create_session(
+        user_id=user["user_id"],
+        duration_days=duration,
+        user_agent=request.headers.get("user-agent"),
+        ip_address=client_ip
+    )
+
+    bats = get_user_batteries(user["user_id"])
+    primary_battery = bats[0]["battery_id"] if bats else settings.BATTERY_ID
+
+    return {
+        "status": "SUCCESS",
+        "message": "Operator authenticated successfully.",
+        "session_token": session_token,
+        "user": {
+            "user_id": user["user_id"],
+            "name": user["name"],
+            "email": user["email"],
+            "role": user["role"],
+            "status": user["status"],
+            "created_at": user["created_at"],
+            "primary_battery_id": primary_battery
+        }
+    }
+
+@app.get("/api/auth/me")
+def get_me_endpoint(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Validates session token and returns active operator profile with registered batteries."""
+    bats = get_user_batteries(current_user["user_id"])
+    primary_battery = bats[0]["battery_id"] if bats else settings.BATTERY_ID
+    return {
+        "authenticated": True,
+        "user": {
+            **current_user,
+            "primary_battery_id": primary_battery,
+            "batteries": bats,
+            "batteries_count": len(bats)
+        }
+    }
+
+@app.post("/api/auth/logout")
+def logout_endpoint(
+    authorization: Optional[str] = Header(None),
+    x_session_token: Optional[str] = Header(None)
+):
+    """Invalidates active session token."""
+    token = None
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    elif x_session_token:
+        token = x_session_token.strip()
+    if token:
+        delete_session(token)
+    return {"status": "SUCCESS", "message": "Session invalidated. Logged out successfully."}
+
+@app.post("/api/auth/forgot-password")
+def forgot_password_endpoint(req: ForgotPasswordRequest, request: Request):
+    """Initiates genuine password recovery workflow and generates secure reset token."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    allowed, retry_after = reset_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Please wait {retry_after}s.")
+
+    user = get_user_by_email(req.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="No registered operator account found with this email.")
+
+    reset_token = create_password_reset(user["user_id"], expiry_minutes=15)
+    return {
+        "status": "SUCCESS",
+        "message": "Password recovery token generated. Use this token to reset your password within 15 minutes.",
+        "reset_token": reset_token,
+        "email": user["email"]
+    }
+
+@app.post("/api/auth/reset-password")
+def reset_password_endpoint(req: ResetPasswordRequest, request: Request):
+    """Verifies reset token, updates password hash, and revokes previous sessions."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    allowed, retry_after = reset_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Please wait {retry_after}s.")
+
+    record = verify_password_reset_token(req.token)
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid, expired, or already used password reset token.")
+
+    new_hash = hash_password(req.new_password)
+    success = update_user_password(record["user_id"], new_hash)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update password.")
+
+    delete_user_sessions(record["user_id"])
+    return {
+        "status": "SUCCESS",
+        "message": "Password has been successfully reset. Please log in with your new credentials."
+    }
+
+# =====================================================================
+# USER-SCOPED BATTERY MANAGEMENT & PERSISTENCE
+# =====================================================================
+
+@app.get("/api/user/batteries")
+def get_user_batteries_endpoint(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Returns all battery packs owned by or accessible to authenticated operator."""
+    batteries = get_user_batteries(current_user["user_id"])
+    return {
+        "count": len(batteries),
+        "batteries": batteries
+    }
+
+@app.post("/api/user/batteries")
+def create_user_battery_endpoint(req: BatteryCreateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Registers a new battery pack owned by the operator in persistent database."""
+    try:
+        new_battery = create_user_battery(
+            user_id=current_user["user_id"],
+            battery_id=req.battery_id,
+            battery_name=req.battery_name,
+            chemistry=req.chemistry or "LFP",
+            rated_capacity=req.rated_capacity or 40.0,
+            nominal_voltage=req.nominal_voltage or 25.6,
+            num_cells=req.num_cells or 8,
+            specs=req.specs,
+            config=req.config
+        )
+        return {"status": "SUCCESS", "battery": new_battery}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/api/battery/scoped/{battery_id}/pack")
+def get_scoped_battery_pack_endpoint(battery_id: str, current_user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
+    """Retrieves latest pack telemetry scoped to specific battery with ownership check."""
+    if current_user and not verify_battery_ownership(current_user["user_id"], battery_id):
+        raise HTTPException(status_code=403, detail="Access denied: You do not have permission to view this battery pack.")
+    
+    pack = get_latest_pack_telemetry(battery_id)
+    if not pack and battery_id == settings.BATTERY_ID:
+        pack = latest_state_cache.get("pack", {})
+    return {"battery_id": battery_id, "pack": pack}
+
+@app.get("/api/battery/scoped/{battery_id}/cells")
+def get_scoped_battery_cells_endpoint(battery_id: str, current_user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
+    """Retrieves cell grid details scoped to specific battery with ownership check."""
+    if current_user and not verify_battery_ownership(current_user["user_id"], battery_id):
+        raise HTTPException(status_code=403, detail="Access denied: You do not have permission to view this battery pack.")
+
+    cells = get_latest_cells_telemetry(battery_id)
+    if not cells and battery_id == settings.BATTERY_ID:
+        cells = latest_state_cache.get("cells", [])
+    return {"battery_id": battery_id, "cells": cells, "num_cells": len(cells)}
+
+@app.get("/api/battery/scoped/{battery_id}/history")
+def get_scoped_battery_history_endpoint(
+    battery_id: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 100,
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_user)
+):
+    """Retrieves historical readings from persistent database with date filtering and data source indicators."""
+    if current_user and not verify_battery_ownership(current_user["user_id"], battery_id):
+        raise HTTPException(status_code=403, detail="Access denied: You do not have permission to view this battery pack.")
+
+    history = get_battery_history_filtered(
+        battery_id=battery_id,
+        start_date=start_date,
+        end_date=end_date,
+        limit=min(limit, 500)
+    )
+    return {
+        "battery_id": battery_id,
+        "count": len(history),
+        "history": history
+    }
+
+@app.get("/api/battery/scoped/{battery_id}/alerts")
+def get_scoped_battery_alerts_endpoint(
+    battery_id: str,
+    status: Optional[str] = None,
+    limit: int = 50,
+    current_user: Optional[Dict[str, Any]] = Depends(get_optional_user)
+):
+    """Retrieves alerts for a specific battery."""
+    if current_user and not verify_battery_ownership(current_user["user_id"], battery_id):
+        raise HTTPException(status_code=403, detail="Access denied: You do not have permission to view this battery pack.")
+
+    alerts = get_alerts(status=status, limit=limit, battery_id=battery_id)
+    return {
+        "battery_id": battery_id,
+        "count": len(alerts),
+        "alerts": alerts
+    }
+
+@app.post("/api/alerts/{alert_id}/acknowledge")
+def acknowledge_alert_endpoint(alert_id: int, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Marks an alert as acknowledged by the authenticated operator in database."""
+    success = acknowledge_alert(alert_id, user_id=current_user["user_id"])
+    if not success:
+        raise HTTPException(status_code=404, detail="Alert not found.")
+    return {"status": "SUCCESS", "message": f"Alert {alert_id} acknowledged by {current_user['name']}."}
+
+@app.post("/api/mqtt/publish-test")
+def publish_mqtt_test(payload: Dict[str, Any], current_user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
+    """Receives physical or test MQTT telemetry, publishes to HiveMQ broker, and records in database."""
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Payload must be a JSON object.")
+
+    battery_id = payload.get("battery_id", settings.BATTERY_ID)
+    if current_user and not verify_battery_ownership(current_user["user_id"], battery_id):
+        raise HTTPException(status_code=403, detail="Access denied: You do not have permission to publish to this battery pack.")
+
+    payload.setdefault("timestamp", datetime.now().isoformat())
+    payload["data_source"] = "MQTT_TELEMETRY"
+
+    published = mqtt_manager.publish_telemetry(payload)
+    process_incoming_telemetry(payload)
+
+    return {
+        "status": "SUCCESS",
+        "published": published,
+        "battery_id": battery_id,
+        "timestamp": payload["timestamp"],
+        "data_source": "MQTT_TELEMETRY",
+        "message": "Telemetry received, published to HiveMQ topic, and persisted in database."
+    }
 
 # REST API Endpoints
 

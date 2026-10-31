@@ -1,6 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Float, ContactShadows, Html, Edges } from '@react-three/drei';
+import { OrbitControls, ContactShadows, Html, Edges } from '@react-three/drei';
 import * as THREE from 'three';
 import {
   RotateCcw,
@@ -13,16 +13,30 @@ import {
   Cpu,
   Radio,
   ChevronRight,
-  ArrowLeft
+  ShieldCheck,
+  Activity,
+  Sliders,
+  Compass,
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import { CellTelemetry } from '../types';
 
 // ==========================================
-// 1. TOPOLOGY & RENDER MODE DEFINITIONS
+// 1. TOPOLOGY & VISUALIZATION MODE DEFINITIONS
 // ==========================================
 export type PackTopology = '8S1P' | '16S1P' | '16S2P' | '24S2P' | '32S4P';
-export type RenderMode = 'REALISTIC' | 'THERMAL' | 'XRAY' | 'VOLTAGE';
-export type DrillStage = 'OVERVIEW' | 'CHASSIS' | 'PACK_MODULE' | 'SINGLE_CELL';
+
+export type VisualizationMode =
+  | 'NORMAL'
+  | 'EXPLODED'
+  | 'CELL_INSPECT'
+  | 'THERMAL'
+  | 'ELECTRICAL'
+  | 'HEALTH'
+  | 'XRAY';
+
+export type CameraViewPreset = 'ISOMETRIC' | 'TOP' | 'FRONT' | 'SIDE';
 
 export interface TopologyDetails {
   id: PackTopology;
@@ -30,6 +44,8 @@ export interface TopologyDetails {
   series: number;
   parallel: number;
   totalCells: number;
+  modules: number;
+  cellsPerModule: number;
   nominalVoltage: number;
   capacityAh: number;
   energyKwh: number;
@@ -43,10 +59,12 @@ export const TOPOLOGY_PRESETS: Record<PackTopology, TopologyDetails> = {
     series: 8,
     parallel: 1,
     totalCells: 8,
+    modules: 2,
+    cellsPerModule: 4,
     nominalVoltage: 25.6,
     capacityAh: 40.0,
     energyKwh: 1.024,
-    description: '8 Series × 1 Parallel • Standard LFP 25.6V Reference Pack'
+    description: '8 Series × 1 Parallel • Standard LFP 25.6V Reference Pack (2 Modules)'
   },
   '16S1P': {
     id: '16S1P',
@@ -54,10 +72,12 @@ export const TOPOLOGY_PRESETS: Record<PackTopology, TopologyDetails> = {
     series: 16,
     parallel: 1,
     totalCells: 16,
+    modules: 2,
+    cellsPerModule: 8,
     nominalVoltage: 51.2,
     capacityAh: 40.0,
     energyKwh: 2.048,
-    description: '16 Series × 1 Parallel • 51.2V 2.05 kWh Urban Mobility'
+    description: '16 Series × 1 Parallel • 51.2V 2.05 kWh Urban Mobility Spec'
   },
   '16S2P': {
     id: '16S2P',
@@ -65,10 +85,12 @@ export const TOPOLOGY_PRESETS: Record<PackTopology, TopologyDetails> = {
     series: 16,
     parallel: 2,
     totalCells: 32,
+    modules: 4,
+    cellsPerModule: 8,
     nominalVoltage: 51.2,
     capacityAh: 80.0,
     energyKwh: 4.096,
-    description: '16 Series × 2 Parallel • 51.2V 4.10 kWh Light EV Platform'
+    description: '16 Series × 2 Parallel • 51.2V 4.10 kWh Light EV Platform (4 Modules)'
   },
   '24S2P': {
     id: '24S2P',
@@ -76,6 +98,8 @@ export const TOPOLOGY_PRESETS: Record<PackTopology, TopologyDetails> = {
     series: 24,
     parallel: 2,
     totalCells: 48,
+    modules: 4,
+    cellsPerModule: 12,
     nominalVoltage: 76.8,
     capacityAh: 80.0,
     energyKwh: 6.144,
@@ -87,1075 +111,1105 @@ export const TOPOLOGY_PRESETS: Record<PackTopology, TopologyDetails> = {
     series: 32,
     parallel: 4,
     totalCells: 128,
+    modules: 8,
+    cellsPerModule: 16,
     nominalVoltage: 102.4,
     capacityAh: 160.0,
     energyKwh: 16.384,
-    description: '32 Series × 4 Parallel • 102.4V 16.38 kWh Commercial EV Spec'
+    description: '32 Series × 4 Parallel • 102.4V 16.38 kWh Commercial EV Grade'
   }
 };
 
-// Thermal Color Mapping
-function getThermalColor(tempC: number): THREE.Color {
-  if (tempC >= 45) return new THREE.Color('#ef4444');
-  if (tempC >= 39) return new THREE.Color('#f97316');
-  if (tempC >= 33) return new THREE.Color('#f59e0b');
-  if (tempC >= 27) return new THREE.Color('#10b981');
-  return new THREE.Color('#06b6d4');
+// ==========================================
+// 2. COLOR PALETTES & REALISTIC ENGINEERING MAPPERS
+// ==========================================
+export function getThermalColor(tempC: number): THREE.Color {
+  if (tempC >= 52) return new THREE.Color('#ef4444'); // Critical Thermal Runaway Threat
+  if (tempC >= 42) return new THREE.Color('#f97316'); // Warning Elevated
+  if (tempC >= 34) return new THREE.Color('#f59e0b'); // Moderate Warm
+  if (tempC >= 27) return new THREE.Color('#10b981'); // Optimal Operating Window
+  return new THREE.Color('#06b6d4'); // Cold / Ambient
 }
 
-// Voltage Delta Color Mapping
-function getVoltageColor(voltage: number): THREE.Color {
-  if (voltage >= 3.32) return new THREE.Color('#06b6d4');
-  if (voltage >= 3.23) return new THREE.Color('#10b981');
-  if (voltage >= 3.16) return new THREE.Color('#f59e0b');
-  return new THREE.Color('#f43f5e');
+export function getHealthColor(soh: number): THREE.Color {
+  if (soh >= 90) return new THREE.Color('#10b981'); // Grade A
+  if (soh >= 80) return new THREE.Color('#06b6d4'); // Grade B
+  if (soh >= 70) return new THREE.Color('#f59e0b'); // Grade C
+  return new THREE.Color('#ef4444'); // Critical EOL Degradation
 }
 
-// ==========================================
-// 2. CURVED CYAN DATA TRANSFER ARROW
-// ==========================================
-function CurvedTransferArrow({
-  start,
-  mid,
-  end
-}: {
-  start: [number, number, number];
-  mid: [number, number, number];
-  end: [number, number, number];
-}) {
-  const curve = useMemo(
-    () =>
-      new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(...start),
-        new THREE.Vector3(...mid),
-        new THREE.Vector3(...end)
-      ),
-    [start, mid, end]
-  );
-
-  const tubeGeo = useMemo(() => new THREE.TubeGeometry(curve, 32, 0.016, 8, false), [curve]);
-
-  const tangent = useMemo(() => curve.getTangent(1).normalize(), [curve]);
-  const arrowRot = useMemo(() => {
-    const q = new THREE.Quaternion();
-    q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
-    return new THREE.Euler().setFromQuaternion(q);
-  }, [tangent]);
-
-  return (
-    <group>
-      <mesh geometry={tubeGeo}>
-        <meshStandardMaterial
-          color="#06b6d4"
-          emissive="#06b6d4"
-          emissiveIntensity={2.2}
-          transparent
-          opacity={0.85}
-        />
-      </mesh>
-      {/* Arrowhead */}
-      <mesh position={end} rotation={arrowRot}>
-        <coneGeometry args={[0.065, 0.18, 16]} />
-        <meshStandardMaterial
-          color="#06b6d4"
-          emissive="#06b6d4"
-          emissiveIntensity={2.8}
-        />
-      </mesh>
-    </group>
-  );
+export function getVoltageColor(voltage: number, avgVoltage: number = 3.28): THREE.Color {
+  const delta = Math.abs(voltage - avgVoltage);
+  if (delta >= 0.12) return new THREE.Color('#ef4444'); // Critical Imbalance
+  if (delta >= 0.06) return new THREE.Color('#f59e0b'); // Warning Imbalance
+  if (delta >= 0.02) return new THREE.Color('#06b6d4'); // Slight Deviation
+  return new THREE.Color('#10b981'); // Balanced Nominal
 }
 
 // ==========================================
-// 3. STAGE 1: GHOSTED EV CHASSIS SKATEBOARD (LEFT)
+// 3. CAMERA CONTROLLER COMPONENT
 // ==========================================
-function EVChassisGhost({
-  onSelect,
-  renderMode
-}: {
-  onSelect: () => void;
-  renderMode: RenderMode;
-}) {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <group
-      position={[-4.5, -0.15, 0]}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect();
-      }}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        setHovered(true);
-      }}
-      onPointerOut={() => setHovered(false)}
-    >
-      {/* Aerodynamic Ghost Car Body Shell */}
-      <group position={[0, 0.48, 0]}>
-        {/* Fuselage & Sleek Hood */}
-        <mesh position={[0, 0.22, 0]}>
-          <boxGeometry args={[4.4, 0.52, 1.88]} />
-          <meshPhysicalMaterial
-            color="#38bdf8"
-            transparent
-            opacity={0.16}
-            roughness={0.15}
-            metalness={0.1}
-            clearcoat={1.0}
-            depthWrite={false}
-          />
-          <Edges color="#38bdf8" threshold={20} opacity={0.4} transparent />
-        </mesh>
-
-        {/* Roofline & Pillars */}
-        <mesh position={[0.18, 0.68, 0]}>
-          <boxGeometry args={[2.3, 0.44, 1.55]} />
-          <meshPhysicalMaterial
-            color="#60a5fa"
-            transparent
-            opacity={0.14}
-            roughness={0.1}
-            metalness={0.05}
-            clearcoat={1.0}
-            depthWrite={false}
-          />
-          <Edges color="#60a5fa" threshold={18} opacity={0.45} transparent />
-        </mesh>
-
-        {/* Windshield Slopes */}
-        <mesh position={[-1.15, 0.48, 0]} rotation={[0, 0, Math.PI / 4.4]}>
-          <boxGeometry args={[0.035, 0.62, 1.52]} />
-          <meshPhysicalMaterial color="#93c5fd" transparent opacity={0.22} depthWrite={false} />
-        </mesh>
-        <mesh position={[1.5, 0.48, 0]} rotation={[0, 0, -Math.PI / 4.6]}>
-          <boxGeometry args={[0.035, 0.64, 1.52]} />
-          <meshPhysicalMaterial color="#93c5fd" transparent opacity={0.22} depthWrite={false} />
-        </mesh>
-      </group>
-
-      {/* 4 Detailed Alloy Wheels with Rubber Tires */}
-      {[
-        [-1.55, -0.12, 1.02],
-        [1.55, -0.12, 1.02],
-        [-1.55, -0.12, -1.02],
-        [1.55, -0.12, -1.02]
-      ].map(([wx, wy, wz], i) => (
-        <group key={i} position={[wx, wy, wz]}>
-          {/* Rubber Tire */}
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.39, 0.39, 0.22, 24]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.7} metalness={0.2} />
-          </mesh>
-          {/* Alloy Rim */}
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.24, 0.24, 0.225, 18]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.95} roughness={0.15} />
-          </mesh>
-          {/* Cyan Hub Ring */}
-          <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, wz > 0 ? 0.12 : -0.12]}>
-            <cylinderGeometry args={[0.07, 0.07, 0.02, 16]} />
-            <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.2} />
-          </mesh>
-          {/* Caliper */}
-          <mesh position={[0.14, 0.1, wz > 0 ? 0.05 : -0.05]}>
-            <boxGeometry args={[0.12, 0.14, 0.1]} />
-            <meshStandardMaterial color="#06b6d4" metalness={0.8} roughness={0.2} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Front & Rear Drive Motors */}
-      <group position={[-1.55, -0.1, 0]}>
-        <mesh>
-          <cylinderGeometry args={[0.24, 0.24, 0.68, 18]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
-          <Edges color="#38bdf8" threshold={25} opacity={0.4} transparent />
-        </mesh>
-      </group>
-      <group position={[1.55, -0.1, 0]}>
-        <mesh>
-          <cylinderGeometry args={[0.25, 0.25, 0.76, 18]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.9} roughness={0.2} />
-          <Edges color="#38bdf8" threshold={25} opacity={0.4} transparent />
-        </mesh>
-      </group>
-
-      {/* Central Orange HV Spine Conduit */}
-      <mesh position={[0, -0.06, 0]}>
-        <boxGeometry args={[2.9, 0.04, 0.05]} />
-        <meshStandardMaterial
-          color="#ea580c"
-          emissive="#f97316"
-          emissiveIntensity={1.4}
-          metalness={0.6}
-          roughness={0.3}
-        />
-      </mesh>
-
-      {/* Underfloor Battery Pack Floor with Glowing Modular Bays */}
-      <group position={[0, -0.18, 0]}>
-        <mesh receiveShadow>
-          <boxGeometry args={[2.5, 0.14, 1.38]} />
-          <meshStandardMaterial
-            color={hovered ? '#0f172a' : '#080d16'}
-            metalness={0.95}
-            roughness={0.12}
-            emissive={hovered ? '#0284c7' : '#0369a1'}
-            emissiveIntensity={hovered ? 0.4 : 0.12}
-          />
-        </mesh>
-
-        {/* Modular Floor Bays */}
-        {[-0.72, -0.24, 0.24, 0.72].map((bx, idx) => (
-          <mesh key={idx} position={[bx, 0.08, 0]}>
-            <boxGeometry args={[0.42, 0.03, 1.18]} />
-            <meshStandardMaterial
-              color="#0284c7"
-              emissive="#06b6d4"
-              emissiveIntensity={hovered ? 2.0 : 1.1}
-            />
-          </mesh>
-        ))}
-
-        {hovered && (
-          <mesh position={[0, 0.22, 0]}>
-            <boxGeometry args={[2.65, 0.28, 1.48]} />
-            <meshBasicMaterial color="#38bdf8" wireframe transparent opacity={0.6} />
-          </mesh>
-        )}
-      </group>
-    </group>
-  );
+interface CameraControllerProps {
+  viewPreset: CameraViewPreset | null;
+  onPresetComplete: () => void;
+  targetPosition: [number, number, number] | null;
+  controlsRef: React.RefObject<any>;
 }
 
-// ==========================================
-// 4. STAGE 2: SKATEBOARD TRAY & ELEVATED BATTERY MODULES (CENTER)
-// ==========================================
-function SkateboardTrayWithModules({
-  onSelectCell,
-  renderMode,
-  exploded
-}: {
-  onSelectCell: (cellId: number) => void;
-  renderMode: RenderMode;
-  exploded: boolean;
-}) {
-  const trayW = 2.8;
-  const trayD = 1.6;
-
-  // Elevating modules out of the tray with smooth float
-  const moduleElevationY = exploded ? 0.75 : 0.42;
-
-  return (
-    <group position={[0.2, -0.15, 0]}>
-      {/* Extruded Aluminum Skateboard Enclosure Tray */}
-      <group position={[0, -0.45, 0]}>
-        {/* Main Floor Tray Enclosure */}
-        <mesh receiveShadow>
-          <boxGeometry args={[trayW, 0.12, trayD]} />
-          <meshStandardMaterial color="#1e293b" metalness={0.92} roughness={0.18} />
-          <Edges color="#38bdf8" threshold={20} opacity={0.4} transparent />
-        </mesh>
-
-        {/* Front Chamfered Nose Plate */}
-        <mesh position={[-trayW / 2 - 0.14, 0, 0]} rotation={[0, 0, Math.PI / 10]}>
-          <boxGeometry args={[0.18, 0.11, trayD * 0.9]} />
-          <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.2} />
-        </mesh>
-
-        {/* Bottom Liquid Cooling Blue Recess Cavities */}
-        <mesh position={[0, 0.055, 0]}>
-          <boxGeometry args={[trayW - 0.2, 0.02, trayD - 0.2]} />
-          <meshStandardMaterial
-            color="#0284c7"
-            emissive="#0284c7"
-            emissiveIntensity={renderMode === 'THERMAL' ? 1.4 : 0.6}
-            metalness={0.9}
-            roughness={0.2}
-          />
-        </mesh>
-
-        {/* Extruded Coolant Flow Ribs */}
-        {[-0.45, -0.15, 0.15, 0.45].map((z, idx) => (
-          <mesh key={idx} position={[0, 0.068, z]}>
-            <boxGeometry args={[trayW - 0.3, 0.012, 0.04]} />
-            <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={2.0} />
-          </mesh>
-        ))}
-
-        {/* Quick Disconnect Coolant Couplers (Front Left) */}
-        <mesh position={[-trayW / 2 - 0.1, 0.02, -0.25]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.038, 0.038, 0.12, 16]} />
-          <meshStandardMaterial color="#0284c7" metalness={0.95} roughness={0.1} />
-        </mesh>
-        <mesh position={[-trayW / 2 - 0.1, 0.02, 0.25]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.038, 0.038, 0.12, 16]} />
-          <meshStandardMaterial color="#06b6d4" metalness={0.95} roughness={0.1} />
-        </mesh>
-
-        {/* Master BMS / BDU High Voltage Junction Box (Front Center) */}
-        <group position={[-trayW / 2 - 0.08, 0.04, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.22, 0.16, 0.34]} />
-            <meshStandardMaterial color="#ea580c" metalness={0.8} roughness={0.25} emissive="#c2410c" emissiveIntensity={0.2} />
-          </mesh>
-          {/* Dual Orange HV Connectors */}
-          <mesh position={[0, 0.09, -0.08]} rotation={[0, 0, 0]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.08, 14]} />
-            <meshStandardMaterial color="#ea580c" metalness={0.7} />
-          </mesh>
-          <mesh position={[0, 0.09, 0.08]} rotation={[0, 0, 0]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.08, 14]} />
-            <meshStandardMaterial color="#ea580c" metalness={0.7} />
-          </mesh>
-        </group>
-
-        {/* Central Orange HV Spine Harness */}
-        <mesh position={[0.2, 0.075, 0]}>
-          <boxGeometry args={[trayW - 0.6, 0.025, 0.05]} />
-          <meshStandardMaterial color="#ea580c" emissive="#f97316" emissiveIntensity={1.2} />
-        </mesh>
-      </group>
-
-      {/* Holographic Vertical Guide Rails / Elevation Rays */}
-      {[-0.6, 0.6].map((x, xi) =>
-        [-0.45, 0.45].map((z, zi) => (
-          <mesh key={`${xi}-${zi}`} position={[x, moduleElevationY / 2 - 0.2, z]}>
-            <cylinderGeometry args={[0.006, 0.006, moduleElevationY + 0.3, 8]} />
-            <meshBasicMaterial color="#38bdf8" transparent opacity={0.4} />
-          </mesh>
-        ))
-      )}
-
-      {/* Elevated Modular Battery Bay Units Hovering Above the Tray */}
-      <group position={[0, moduleElevationY, 0]}>
-        {/* Module Bank 1 (Left / Front) */}
-        <group
-          position={[-0.55, 0, -0.38]}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectCell(1);
-          }}
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
-            <mesh key={`m1-c-${i}`} position={[(i - 2.5) * 0.17, 0, 0]} castShadow>
-              <boxGeometry args={[0.15, 0.58, 0.32]} />
-              <meshStandardMaterial
-                color={renderMode === 'THERMAL' ? '#10b981' : '#1e40af'}
-                metalness={0.5}
-                roughness={0.2}
-              />
-              <Edges color="#38bdf8" threshold={15} />
-            </mesh>
-          ))}
-          {/* Top Series Copper Busbars */}
-          <mesh position={[0, 0.3, 0]}>
-            <boxGeometry args={[1.02, 0.02, 0.08]} />
-            <meshStandardMaterial color="#d97706" metalness={0.95} roughness={0.12} emissive="#b45309" emissiveIntensity={0.25} />
-          </mesh>
-        </group>
-
-        {/* Module Bank 2 (Right / Front) */}
-        <group
-          position={[0.55, 0, -0.38]}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectCell(2);
-          }}
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
-            <mesh key={`m2-c-${i}`} position={[(i - 2.5) * 0.17, 0, 0]} castShadow>
-              <boxGeometry args={[0.15, 0.58, 0.32]} />
-              <meshStandardMaterial
-                color={renderMode === 'THERMAL' ? '#06b6d4' : '#1e40af'}
-                metalness={0.5}
-                roughness={0.2}
-              />
-              <Edges color="#38bdf8" threshold={15} />
-            </mesh>
-          ))}
-          <mesh position={[0, 0.3, 0]}>
-            <boxGeometry args={[1.02, 0.02, 0.08]} />
-            <meshStandardMaterial color="#d97706" metalness={0.95} roughness={0.12} emissive="#b45309" emissiveIntensity={0.25} />
-          </mesh>
-        </group>
-
-        {/* Module Bank 3 (Elevated Active Target Module, Rear) */}
-        <group
-          position={[0.2, 0.12, 0.38]}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelectCell(3);
-          }}
-        >
-          {Array.from({ length: 8 }).map((_, i) => (
-            <mesh key={`m3-c-${i}`} position={[(i - 3.5) * 0.17, 0, 0]} castShadow>
-              <boxGeometry args={[0.15, 0.58, 0.32]} />
-              <meshStandardMaterial
-                color={renderMode === 'THERMAL' ? '#10b981' : '#2563eb'}
-                emissive="#0284c7"
-                emissiveIntensity={0.3}
-                metalness={0.6}
-                roughness={0.18}
-              />
-              <Edges color="#60a5fa" threshold={15} />
-            </mesh>
-          ))}
-          <mesh position={[0, 0.3, 0]}>
-            <boxGeometry args={[1.36, 0.02, 0.08]} />
-            <meshStandardMaterial color="#d97706" metalness={0.95} roughness={0.12} emissive="#b45309" emissiveIntensity={0.3} />
-          </mesh>
-          {/* Active Module Indicator Light */}
-          <mesh position={[0, 0.35, 0]}>
-            <sphereGeometry args={[0.025, 12, 12]} />
-            <meshBasicMaterial color="#10b981" />
-          </mesh>
-        </group>
-      </group>
-    </group>
-  );
-}
-
-// ==========================================
-// 5. STAGE 3: SINGLE CELL INTERNAL BIFURCATION & HUD TARGET (RIGHT)
-// ==========================================
-function SingleCellHeroAssembly({
-  cell,
-  renderMode,
-  showLabels
-}: {
-  cell: CellTelemetry;
-  renderMode: RenderMode;
-  showLabels: boolean;
-}) {
-  const soc = cell.soc ?? 64.0;
-  const voltage = cell.voltage ?? 3.227;
-  const temp = cell.temp_c ?? 26.5;
-
-  return (
-    <group position={[4.0, 0.12, 0]}>
-      {/* ----------------------------------------------------------------- */}
-      {/* PART A: LATERALLY EXPANDED INTERNAL SUB-LAYERS (SPACED OUT) */}
-      {/* ----------------------------------------------------------------- */}
-      <group position={[-0.45, 0, 0]}>
-        {/* SUB-LAYER 1: OUTER BLUE PET INSULATION SLEEVE & ALUMINUM CAN */}
-        <group position={[-0.7, 0, 0]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.22, 1.25, 0.55]} />
-            <meshStandardMaterial
-              color="#1e40af"
-              metalness={0.4}
-              roughness={0.2}
-              transparent
-              opacity={0.88}
-            />
-            <Edges color="#38bdf8" threshold={15} />
-          </mesh>
-          {/* Clear Staggered Label 1: Placed cleanly below with no overlap */}
-          <Html position={[0, -0.85, 0]} center distanceFactor={8}>
-            <div className="pointer-events-none select-none font-mono text-[9px] font-bold px-2.5 py-1 rounded-lg bg-[#040911]/95 text-cyan-300 border border-cyan-500/50 shadow-[0_0_12px_rgba(6,182,212,0.4)] whitespace-nowrap">
-              1. PET INSULATION & CAN
-            </div>
-          </Html>
-        </group>
-
-        {/* SUB-LAYER 2: INTERNAL WOUND/STACKED JELLY-ROLL (ANODE/SEPARATOR/CATHODE) */}
-        <group position={[0, 0, 0]}>
-          {/* Wound Jelly-Roll Core */}
-          <mesh castShadow>
-            <boxGeometry args={[0.18, 1.15, 0.48]} />
-            <meshStandardMaterial
-              color={renderMode === 'THERMAL' ? getThermalColor(temp) : '#0284c7'}
-              emissive={renderMode === 'THERMAL' ? getThermalColor(temp) : '#06b6d4'}
-              emissiveIntensity={1.6}
-              metalness={0.2}
-              roughness={0.15}
-            />
-          </mesh>
-          {/* Internal Wireframe Texture */}
-          <mesh>
-            <boxGeometry args={[0.185, 1.16, 0.485]} />
-            <meshBasicMaterial color="#38bdf8" wireframe transparent opacity={0.45} />
-          </mesh>
-          {/* Clear Staggered Label 2: Placed staggered lower so it NEVER collides with #1 or #4 */}
-          <Html position={[0, -1.18, 0]} center distanceFactor={8}>
-            <div className="pointer-events-none select-none font-mono text-[9.5px] font-bold px-3 py-1 rounded-lg bg-[#040911]/95 text-cyan-200 border border-cyan-400 shadow-[0_0_14px_rgba(6,182,212,0.5)] whitespace-nowrap">
-              2. ELECTRODE JELLY-ROLL (SOC {soc.toFixed(0)}%)
-            </div>
-          </Html>
-        </group>
-
-        {/* SUB-LAYER 4: SIDE CURRENT COLLECTORS & TOP TERMINAL PLATE */}
-        <group position={[0.65, 0, 0]}>
-          {/* Copper Foil Collector Tab */}
-          <mesh position={[-0.03, 0.05, 0]}>
-            <boxGeometry args={[0.025, 0.95, 0.16]} />
-            <meshStandardMaterial color="#d97706" metalness={0.95} roughness={0.1} />
-          </mesh>
-          {/* Aluminum Foil Collector Tab */}
-          <mesh position={[0.03, 0.05, 0]}>
-            <boxGeometry args={[0.025, 0.95, 0.16]} />
-            <meshStandardMaterial color="#e2e8f0" metalness={0.95} roughness={0.1} />
-          </mesh>
-          {/* Top Laser Welded Assembly Header Plate */}
-          <mesh position={[0, 0.62, 0]}>
-            <boxGeometry args={[0.24, 0.03, 0.52]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.15} />
-          </mesh>
-          {/* Laser Welded Copper Terminal Post */}
-          <mesh position={[0, 0.67, -0.14]}>
-            <cylinderGeometry args={[0.038, 0.038, 0.07, 16]} />
-            <meshStandardMaterial color="#d97706" metalness={0.9} />
-          </mesh>
-          {/* Laser Welded Nickel Terminal Post */}
-          <mesh position={[0, 0.67, 0.14]}>
-            <cylinderGeometry args={[0.038, 0.038, 0.07, 16]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.9} />
-          </mesh>
-          {/* Clear Staggered Label 4: Placed staggered below #4 without overlap */}
-          <Html position={[0, -1.48, 0]} center distanceFactor={8}>
-            <div className="pointer-events-none select-none font-mono text-[9px] font-bold px-2.5 py-1 rounded-lg bg-[#2b1607]/95 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.4)] whitespace-nowrap">
-              4. CURRENT COLLECTORS
-            </div>
-          </Html>
-        </group>
-      </group>
-
-      {/* ----------------------------------------------------------------- */}
-      {/* PART B: INTACT ISOLATED PRISMATIC CELL WITH CONCENTRIC HUD RINGS */}
-      {/* ----------------------------------------------------------------- */}
-      <group position={[1.45, 0, 0]}>
-        {/* Cell Casing */}
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[0.26, 1.35, 0.62]} />
-          <meshStandardMaterial
-            color={renderMode === 'THERMAL' ? getThermalColor(temp) : '#1e3a8a'}
-            metalness={0.65}
-            roughness={0.18}
-            emissive={renderMode === 'THERMAL' ? getThermalColor(temp) : '#0284c7'}
-            emissiveIntensity={0.25}
-          />
-          <Edges color="#38bdf8" threshold={15} />
-        </mesh>
-
-        {/* Top Brushed Aluminum Header Cap */}
-        <mesh position={[0, 0.68, 0]}>
-          <boxGeometry args={[0.265, 0.025, 0.625]} />
-          <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.1} />
-        </mesh>
-
-        {/* Positive Pole Collar (+ Red Base Ring) */}
-        <group position={[0, 0.73, -0.18]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[0.045, 0.045, 0.08, 16]} />
-            <meshStandardMaterial color="#d97706" metalness={0.95} />
-          </mesh>
-          <mesh position={[0, -0.035, 0]}>
-            <cylinderGeometry args={[0.06, 0.06, 0.015, 16]} />
-            <meshStandardMaterial color="#dc2626" />
-          </mesh>
-        </group>
-
-        {/* Negative Pole Collar (- Black Base Ring) */}
-        <group position={[0, 0.73, 0.18]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[0.045, 0.045, 0.08, 16]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.95} />
-          </mesh>
-          <mesh position={[0, -0.035, 0]}>
-            <cylinderGeometry args={[0.06, 0.06, 0.015, 16]} />
-            <meshStandardMaterial color="#0f172a" />
-          </mesh>
-        </group>
-
-        {/* Central Safety Rupture Vent */}
-        <mesh position={[0, 0.695, 0]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.015, 16]} />
-          <meshStandardMaterial color="#475569" metalness={0.8} />
-        </mesh>
-
-        {/* Futuristic Concentric Circular HUD Target Rings Around Top Terminals */}
-        <group position={[0, 0.75, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <mesh>
-            <ringGeometry args={[0.42, 0.44, 48]} />
-            <meshBasicMaterial color="#06b6d4" transparent opacity={0.8} wireframe />
-          </mesh>
-          <mesh>
-            <ringGeometry args={[0.55, 0.57, 48]} />
-            <meshBasicMaterial color="#10b981" transparent opacity={0.5} wireframe />
-          </mesh>
-        </group>
-
-        {/* Futuristic Concentric Circular HUD Target Rings Around Base */}
-        <group position={[0, -0.7, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <mesh>
-            <ringGeometry args={[0.48, 0.5, 48]} />
-            <meshBasicMaterial color="#06b6d4" transparent opacity={0.85} wireframe />
-          </mesh>
-          <mesh>
-            <ringGeometry args={[0.65, 0.67, 64]} />
-            <meshBasicMaterial color="#06b6d4" transparent opacity={0.45} wireframe />
-          </mesh>
-        </group>
-
-        {/* Staggered Glassmorphic ID Tags matching reference image */}
-        {showLabels && (
-          <>
-            {/* Top C1 Tag */}
-            <Html position={[0, 0.95, -0.22]} center distanceFactor={7}>
-              <div className="pointer-events-none select-none font-mono text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/90 text-slate-950 border border-white shadow-[0_0_10px_rgba(16,185,129,0.8)]">
-                C1
-              </div>
-            </Html>
-            {/* Front C4 3.23V Target Tag */}
-            <Html position={[-0.32, -0.2, 0.15]} center distanceFactor={7}>
-              <div className="pointer-events-none select-none font-mono text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-950/90 text-emerald-300 border border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.5)] flex flex-col items-center">
-                <span className="text-[10px] font-extrabold text-white">C4</span>
-                <span className="text-[8px] text-emerald-400 opacity-90">{voltage.toFixed(2)}V</span>
-              </div>
-            </Html>
-          </>
-        )}
-      </group>
-    </group>
-  );
-}
-
-// ==========================================
-// 6. CAMERA CONTROLLER
-// ==========================================
-function CameraRig({ drillStage }: { drillStage: DrillStage }) {
+function CameraController({
+  viewPreset,
+  onPresetComplete,
+  targetPosition,
+  controlsRef
+}: CameraControllerProps) {
   const { camera } = useThree();
+  const isTransitioningRef = useRef<boolean>(false);
+  const targetCamPosRef = useRef<THREE.Vector3>(new THREE.Vector3(3.8, 3.2, 4.4));
+  const targetLookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
+
+  useEffect(() => {
+    if (viewPreset) {
+      isTransitioningRef.current = true;
+      if (viewPreset === 'ISOMETRIC') {
+        targetCamPosRef.current.set(3.8, 3.2, 4.4);
+        targetLookAtRef.current.set(0, 0, 0);
+      } else if (viewPreset === 'TOP') {
+        targetCamPosRef.current.set(0, 5.6, 0.01);
+        targetLookAtRef.current.set(0, 0, 0);
+      } else if (viewPreset === 'FRONT') {
+        targetCamPosRef.current.set(0, 0.9, 4.8);
+        targetLookAtRef.current.set(0, 0, 0);
+      } else if (viewPreset === 'SIDE') {
+        targetCamPosRef.current.set(5.2, 0.9, 0);
+        targetLookAtRef.current.set(0, 0, 0);
+      }
+    }
+  }, [viewPreset]);
+
+  useEffect(() => {
+    if (targetPosition) {
+      isTransitioningRef.current = true;
+      targetLookAtRef.current.set(...targetPosition);
+      targetCamPosRef.current.set(
+        targetPosition[0] + 1.2,
+        targetPosition[1] + 1.4,
+        targetPosition[2] + 2.0
+      );
+    }
+  }, [targetPosition]);
 
   useFrame((_, delta) => {
-    let targetX = 0.4;
-    let targetY = 2.4;
-    let targetZ = 8.2;
+    if (isTransitioningRef.current) {
+      camera.position.lerp(targetCamPosRef.current, Math.min(delta * 5.0, 0.2));
 
-    if (drillStage === 'CHASSIS') {
-      targetX = -4.5;
-      targetY = 1.9;
-      targetZ = 4.8;
-    } else if (drillStage === 'PACK_MODULE') {
-      targetX = 0.2;
-      targetY = 2.2;
-      targetZ = 5.2;
-    } else if (drillStage === 'SINGLE_CELL') {
-      targetX = 4.0;
-      targetY = 1.3;
-      targetZ = 4.2;
+      if (controlsRef.current) {
+        controlsRef.current.target.lerp(targetLookAtRef.current, Math.min(delta * 5.0, 0.2));
+        controlsRef.current.update();
+      }
+
+      if (camera.position.distanceTo(targetCamPosRef.current) < 0.04) {
+        isTransitioningRef.current = false;
+        onPresetComplete();
+      }
     }
-
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, targetX, 3.5, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, targetY, 3.5, delta);
-    camera.position.z = THREE.MathUtils.damp(camera.position.z, targetZ, 3.5, delta);
   });
 
   return null;
 }
 
 // ==========================================
-// 7. MAIN BATTERY PACK 3D COMPONENT
+// 4. PRISMATIC CELL COMPONENT
+// ==========================================
+interface PrismaticCellProps {
+  cell: CellTelemetry;
+  position: [number, number, number];
+  dimensions: [number, number, number]; // [width, height, depth]
+  isSelected: boolean;
+  isHovered: boolean;
+  mode: VisualizationMode;
+  avgVoltage: number;
+  packSoh: number;
+  explodeFactor: number;
+  onHover: (hovered: boolean) => void;
+  onSelect: () => void;
+}
+
+function PrismaticCell({
+  cell,
+  position,
+  dimensions,
+  isSelected,
+  isHovered,
+  mode,
+  avgVoltage,
+  packSoh,
+  explodeFactor,
+  onHover,
+  onSelect
+}: PrismaticCellProps) {
+  const [w, h, d] = dimensions;
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  const tempVal = cell.temp_c ?? (cell as any).temperature ?? 26.0;
+  const voltVal = cell.voltage ?? 3.28;
+  const cellSoh = cell.soc ?? packSoh ?? 87.4; // If individual SOH unavailable, display derived health
+  const isCritical = tempVal >= 52 || Math.abs(voltVal - avgVoltage) >= 0.12;
+
+  // Material color resolution depending on active visualization mode
+  const cellMaterial = useMemo(() => {
+    if (mode === 'THERMAL') {
+      const color = getThermalColor(tempVal);
+      return (
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={isCritical ? 1.6 : 0.65}
+          metalness={0.4}
+          roughness={0.25}
+        />
+      );
+    }
+
+    if (mode === 'HEALTH') {
+      const color = getHealthColor(cellSoh);
+      return (
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.6}
+          metalness={0.5}
+          roughness={0.2}
+        />
+      );
+    }
+
+    if (mode === 'ELECTRICAL') {
+      const voltColor = getVoltageColor(voltVal, avgVoltage);
+      return (
+        <meshStandardMaterial
+          color="#1e293b"
+          emissive={voltColor}
+          emissiveIntensity={isSelected ? 1.4 : 0.4}
+          metalness={0.8}
+          roughness={0.2}
+        />
+      );
+    }
+
+    if (mode === 'XRAY') {
+      return (
+        <meshPhysicalMaterial
+          color="#0ea5e9"
+          emissive="#0284c7"
+          emissiveIntensity={isSelected ? 1.2 : 0.3}
+          metalness={0.3}
+          roughness={0.1}
+          transmission={0.65}
+          transparent
+          opacity={0.7}
+          depthWrite={false}
+        />
+      );
+    }
+
+    // NORMAL / EXPLODED / CELL_INSPECT: Realistic Metallic Anodized PET Film
+    return (
+      <meshStandardMaterial
+        color={isSelected ? '#0284c7' : isHovered ? '#1e40af' : '#0f2952'}
+        emissive={isSelected ? '#38bdf8' : isHovered ? '#06b6d4' : '#0369a1'}
+        emissiveIntensity={isSelected ? 1.2 : isHovered ? 0.7 : 0.22}
+        metalness={0.85}
+        roughness={0.22}
+      />
+    );
+  }, [mode, tempVal, voltVal, cellSoh, isSelected, isHovered, isCritical, avgVoltage]);
+
+  // Exploded elevation offset for cell layer (elevates upward in exploded view)
+  const cellYOffset = explodeFactor * 0.42;
+
+  return (
+    <group
+      position={[position[0], position[1] + cellYOffset, position[2]]}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        onHover(true);
+      }}
+      onPointerOut={() => onHover(false)}
+    >
+      {/* 1. Main Prismatic Aluminum Casing & Insulating Sleeve */}
+      <mesh ref={meshRef} castShadow receiveShadow>
+        <boxGeometry args={[w, h, d]} />
+        {cellMaterial}
+        <Edges
+          color={isSelected ? '#38bdf8' : isHovered ? '#67e8f9' : '#0284c7'}
+          threshold={25}
+          opacity={isSelected ? 1.0 : isHovered ? 0.8 : 0.35}
+          transparent
+        />
+      </mesh>
+
+      {/* 2. Laser-Welded Top Header Plate (Silver Alloy) */}
+      <mesh position={[0, h / 2 + 0.01, 0]}>
+        <boxGeometry args={[w * 0.96, 0.018, d * 0.94]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.96} roughness={0.12} />
+      </mesh>
+
+      {/* 3. Positive Terminal Post (Copper + Red Ring) */}
+      <group position={[-w * 0.24, h / 2 + 0.035, 0]}>
+        {/* Terminal Post */}
+        <mesh castShadow>
+          <cylinderGeometry args={[w * 0.14, w * 0.14, 0.045, 16]} />
+          <meshStandardMaterial color="#d97706" metalness={0.95} roughness={0.15} />
+        </mesh>
+        {/* Positive Red Polar Insulating Collar */}
+        <mesh position={[0, -0.018, 0]}>
+          <cylinderGeometry args={[w * 0.18, w * 0.18, 0.012, 16]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.3} />
+        </mesh>
+      </group>
+
+      {/* 4. Negative Terminal Post (Nickel Plated + Black Ring) */}
+      <group position={[w * 0.24, h / 2 + 0.035, 0]}>
+        {/* Terminal Post */}
+        <mesh castShadow>
+          <cylinderGeometry args={[w * 0.14, w * 0.14, 0.045, 16]} />
+          <meshStandardMaterial color="#94a3b8" metalness={0.95} roughness={0.15} />
+        </mesh>
+        {/* Negative Black Polar Insulating Collar */}
+        <mesh position={[0, -0.018, 0]}>
+          <cylinderGeometry args={[w * 0.18, w * 0.18, 0.012, 16]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.3} />
+        </mesh>
+      </group>
+
+      {/* 5. Center Safety Pressure Relief Burst Vent */}
+      <mesh position={[0, h / 2 + 0.021, 0]}>
+        <cylinderGeometry args={[w * 0.12, w * 0.12, 0.01, 16]} />
+        <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+      </mesh>
+
+      {/* 6. Underside Heat-Conductive Thermal Dissipation Pad */}
+      <mesh position={[0, -h / 2 - 0.008, 0]}>
+        <boxGeometry args={[w * 0.94, 0.014, d * 0.94]} />
+        <meshStandardMaterial
+          color="#0284c7"
+          emissive="#0284c7"
+          emissiveIntensity={mode === 'THERMAL' ? 1.0 : 0.3}
+          metalness={0.4}
+          roughness={0.4}
+        />
+      </mesh>
+
+      {/* 7. Hover or Selected Holographic Target HUD Ring */}
+      {(isSelected || isHovered) && (
+        <group position={[0, h / 2 + 0.09, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <mesh>
+            <ringGeometry args={[w * 0.42, w * 0.46, 32]} />
+            <meshBasicMaterial
+              color={isSelected ? '#38bdf8' : '#06b6d4'}
+              transparent
+              opacity={0.85}
+              wireframe
+            />
+          </mesh>
+        </group>
+      )}
+
+      {/* 8. 3D Floating Cell Badge in Cell Inspect Mode */}
+      {(mode === 'CELL_INSPECT' || isSelected) && (
+        <Html position={[0, h / 2 + 0.18, 0]} center distanceFactor={6}>
+          <div
+            className={`pointer-events-none select-none font-mono text-[9px] font-bold px-2 py-0.5 rounded-lg backdrop-blur-md border transition-all whitespace-nowrap shadow-xl flex items-center gap-1.5 ${
+              isSelected
+                ? 'bg-cyan-500/90 text-slate-950 border-white shadow-[0_0_16px_rgba(6,182,212,0.8)] scale-110'
+                : 'bg-[#040911]/90 text-cyan-300 border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+            }`}
+          >
+            <span>C{cell.cell_id}</span>
+            <span className="text-[8px] opacity-90">{voltVal.toFixed(2)}V</span>
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+// ==========================================
+// 5. SERIES COPPER BUSBAR CONNECTOR
+// ==========================================
+function BusbarInterconnect({
+  startPos,
+  endPos,
+  explodeFactor,
+  mode
+}: {
+  startPos: [number, number, number];
+  endPos: [number, number, number];
+  explodeFactor: number;
+  mode: VisualizationMode;
+}) {
+  const busbarYOffset = explodeFactor * 0.85; // Busbars hover higher in exploded mode
+
+  const midX = (startPos[0] + endPos[0]) / 2;
+  const midY = (startPos[1] + endPos[1]) / 2 + busbarYOffset;
+  const midZ = (startPos[2] + endPos[2]) / 2;
+
+  const dx = endPos[0] - startPos[0];
+  const dz = endPos[2] - startPos[2];
+  const length = Math.sqrt(dx * dx + dz * dz);
+  const angle = Math.atan2(dz, dx);
+
+  const isElectrical = mode === 'ELECTRICAL';
+
+  return (
+    <group position={[midX, midY, midZ]} rotation={[0, -angle, 0]}>
+      {/* Heavy-Duty Solid Copper Busbar Plate */}
+      <mesh castShadow>
+        <boxGeometry args={[length + 0.08, 0.016, 0.055]} />
+        <meshStandardMaterial
+          color={isElectrical ? '#f59e0b' : '#d97706'}
+          emissive={isElectrical ? '#f59e0b' : '#b45309'}
+          emissiveIntensity={isElectrical ? 1.5 : 0.3}
+          metalness={0.96}
+          roughness={0.12}
+        />
+      </mesh>
+      {/* Dual Laser-Weld Boss Connection Terminals */}
+      <mesh position={[-length / 2, 0.012, 0]}>
+        <cylinderGeometry args={[0.018, 0.018, 0.012, 12]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.95} />
+      </mesh>
+      <mesh position={[length / 2, 0.012, 0]}>
+        <cylinderGeometry args={[0.018, 0.018, 0.012, 12]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.95} />
+      </mesh>
+    </group>
+  );
+}
+
+// ==========================================
+// 6. MODULAR BATTERY BANK & ENCLOSURE ASSEMBLY (NO CHASSIS)
+// ==========================================
+interface AssembledBatteryPackProps {
+  cells: CellTelemetry[];
+  topology: TopologyDetails;
+  mode: VisualizationMode;
+  explodeFactor: number;
+  selectedCellId: number | null;
+  selectedModuleId: number | null;
+  avgVoltage: number;
+  packSoh: number;
+  onSelectCell: (cell: CellTelemetry) => void;
+  onSelectModule: (modIndex: number) => void;
+}
+
+function AssembledBatteryPack({
+  cells,
+  topology,
+  mode,
+  explodeFactor,
+  selectedCellId,
+  selectedModuleId,
+  avgVoltage,
+  packSoh,
+  onSelectCell,
+  onSelectModule
+}: AssembledBatteryPackProps) {
+  const [hoveredCellId, setHoveredCellId] = useState<number | null>(null);
+
+  const totalCells = topology.totalCells;
+  const numModules = topology.modules;
+  const cellsPerModule = topology.cellsPerModule;
+
+  // Dimensional parameters for realistic EV battery pack
+  const cellW = 0.28;
+  const cellH = 0.85;
+  const cellD = 0.16;
+  const cellGapZ = 0.035;
+
+  const moduleDepth = cellsPerModule * (cellD + cellGapZ) + 0.12;
+  const moduleWidth = cellW + 0.1;
+  const moduleGapX = 0.32;
+
+  const packWidth = numModules * moduleWidth + (numModules - 1) * moduleGapX + 0.45;
+  const packLength = moduleDepth + 0.65;
+  const trayHeight = 0.14;
+
+  // Exploded layer offsets
+  const topCoverY = cellH / 2 + 0.08 + explodeFactor * 1.65;
+  const bottomTrayY = -cellH / 2 - 0.06 - explodeFactor * 0.75;
+  const coldPlateY = -cellH / 2 - 0.02 - explodeFactor * 0.35;
+
+  // Generate cell positions mapped across modules
+  const cellLayout = useMemo(() => {
+    const list: Array<{
+      cell: CellTelemetry;
+      moduleIndex: number;
+      localIndex: number;
+      pos: [number, number, number];
+      termPosA: [number, number, number];
+      termPosB: [number, number, number];
+    }> = [];
+
+    const startX = -((numModules - 1) * (moduleWidth + moduleGapX)) / 2;
+
+    for (let m = 0; m < numModules; m++) {
+      const modX = startX + m * (moduleWidth + moduleGapX);
+      const startZ = -((cellsPerModule - 1) * (cellD + cellGapZ)) / 2;
+
+      for (let c = 0; c < cellsPerModule; c++) {
+        const globalIndex = m * cellsPerModule + c;
+        if (globalIndex >= totalCells) break;
+
+        const cellId = globalIndex + 1;
+        const cellData = cells[globalIndex % (cells.length || 1)] || {
+          cell_id: cellId,
+          voltage: 3.28 + (globalIndex % 2 === 0 ? 0.006 : -0.006),
+          current: 14.5,
+          temp_c: 26.2 + (globalIndex * 0.05),
+          soc: 64.8,
+          internal_resistance_mohm: 32.0,
+          health_status: 'NORMAL'
+        };
+
+        const cz = startZ + c * (cellD + cellGapZ);
+        const pos: [number, number, number] = [modX, 0, cz];
+
+        // Alternating polarities for series connection
+        const isReversed = c % 2 === 1;
+        const termPosA: [number, number, number] = [
+          modX + (isReversed ? cellW * 0.24 : -cellW * 0.24),
+          cellH / 2 + 0.035,
+          cz
+        ];
+        const termPosB: [number, number, number] = [
+          modX + (isReversed ? -cellW * 0.24 : cellW * 0.24),
+          cellH / 2 + 0.035,
+          cz
+        ];
+
+        list.push({
+          cell: { ...cellData, cell_id: cellId },
+          moduleIndex: m + 1,
+          localIndex: c,
+          pos,
+          termPosA,
+          termPosB
+        });
+      }
+    }
+    return list;
+  }, [numModules, cellsPerModule, totalCells, cells, moduleWidth, moduleGapX, cellW, cellH, cellD, cellGapZ]);
+
+  return (
+    <group position={[0, 0, 0]}>
+      {/* ======================================================== */}
+      {/* 1. LOWER STRUCTURAL TRAY ENCLOSURE & CRASH SILLS (BOTTOM) */}
+      {/* ======================================================== */}
+      <group position={[0, bottomTrayY, 0]}>
+        {/* Main Extruded Aluminum Pan */}
+        <mesh receiveShadow position={[0, -trayHeight / 2, 0]}>
+          <boxGeometry args={[packWidth, trayHeight, packLength]} />
+          <meshStandardMaterial
+            color="#0b1120"
+            metalness={0.92}
+            roughness={0.18}
+            emissive="#0369a1"
+            emissiveIntensity={0.12}
+          />
+          <Edges color="#38bdf8" threshold={25} opacity={0.4} transparent />
+        </mesh>
+
+        {/* Structural Perimeter Mounting Flange with Bolt Holes */}
+        <mesh position={[0, -0.01, 0]}>
+          <boxGeometry args={[packWidth + 0.16, 0.02, packLength + 0.16]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.95} roughness={0.15} />
+          <Edges color="#0284c7" threshold={30} opacity={0.45} transparent />
+        </mesh>
+
+        {/* Internal Longitudinal Shear Beams separating Module Bays */}
+        {Array.from({ length: numModules - 1 }).map((_, i) => {
+          const startX = -((numModules - 1) * (moduleWidth + moduleGapX)) / 2;
+          const beamX = startX + i * (moduleWidth + moduleGapX) + (moduleWidth + moduleGapX) / 2;
+          return (
+            <mesh key={`beam-${i}`} position={[beamX, trayHeight * 0.35, 0]}>
+              <boxGeometry args={[0.045, trayHeight * 0.9, packLength - 0.2]} />
+              <meshStandardMaterial color="#334155" metalness={0.95} roughness={0.2} />
+              <Edges color="#38bdf8" threshold={20} opacity={0.3} transparent />
+            </mesh>
+          );
+        })}
+
+        {/* Transverse Cross-Members for Torsional Rigidity */}
+        {[-packLength * 0.3, 0, packLength * 0.3].map((cz, i) => (
+          <mesh key={`cross-${i}`} position={[0, trayHeight * 0.3, cz]}>
+            <boxGeometry args={[packWidth - 0.1, trayHeight * 0.6, 0.035]} />
+            <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.2} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ======================================================== */}
+      {/* 2. LIQUID COOLING COLD PLATE & SERPENTINE CHANNELS */}
+      {/* ======================================================== */}
+      <group position={[0, coldPlateY, 0]}>
+        {/* Aluminum Cold Plate Body */}
+        <mesh receiveShadow position={[0, -0.015, 0]}>
+          <boxGeometry args={[packWidth - 0.08, 0.028, packLength - 0.14]} />
+          <meshStandardMaterial
+            color="#0284c7"
+            emissive="#0284c7"
+            emissiveIntensity={mode === 'THERMAL' ? 1.4 : 0.5}
+            metalness={0.88}
+            roughness={0.15}
+          />
+        </mesh>
+
+        {/* Serpentine Coolant Flow Ribs / Microchannels */}
+        {Array.from({ length: 6 }).map((_, i) => {
+          const zOffset = -packLength * 0.38 + (i * packLength * 0.76) / 5;
+          return (
+            <mesh key={`coolant-${i}`} position={[0, 0.002, zOffset]}>
+              <boxGeometry args={[packWidth - 0.22, 0.01, 0.035]} />
+              <meshStandardMaterial
+                color="#06b6d4"
+                emissive="#06b6d4"
+                emissiveIntensity={mode === 'THERMAL' ? 2.2 : 1.2}
+              />
+            </mesh>
+          );
+        })}
+
+        {/* Dual Quick-Disconnect Liquid Coolant Manifolds (Front-Left) */}
+        <group position={[-packWidth / 2 - 0.06, 0.02, -packLength * 0.35]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh>
+            <cylinderGeometry args={[0.032, 0.032, 0.12, 16]} />
+            <meshStandardMaterial color="#0284c7" metalness={0.95} roughness={0.1} />
+          </mesh>
+          <mesh position={[0, 0.04, 0]}>
+            <cylinderGeometry args={[0.038, 0.038, 0.02, 16]} />
+            <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} />
+          </mesh>
+        </group>
+        <group position={[-packWidth / 2 - 0.06, 0.02, -packLength * 0.22]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh>
+            <cylinderGeometry args={[0.032, 0.032, 0.12, 16]} />
+            <meshStandardMaterial color="#0284c7" metalness={0.95} roughness={0.1} />
+          </mesh>
+          <mesh position={[0, 0.04, 0]}>
+            <cylinderGeometry args={[0.038, 0.038, 0.02, 16]} />
+            <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={1.5} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* ======================================================== */}
+      {/* 3. BATTERY MODULE FRAMES & SIDE COMPRESSION PLATES */}
+      {/* ======================================================== */}
+      {Array.from({ length: numModules }).map((_, m) => {
+        const startX = -((numModules - 1) * (moduleWidth + moduleGapX)) / 2;
+        const modX = startX + m * (moduleWidth + moduleGapX);
+        const isModuleSelected = selectedModuleId === m + 1;
+
+        return (
+          <group
+            key={`module-${m}`}
+            position={[modX, explodeFactor * 0.18, 0]}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectModule(m + 1);
+            }}
+          >
+            {/* Front & Rear Structural End-Plates (Machined Aluminum) */}
+            <mesh position={[0, 0, -moduleDepth / 2 - 0.015]} castShadow>
+              <boxGeometry args={[moduleWidth, cellH * 0.94, 0.03]} />
+              <meshStandardMaterial
+                color={isModuleSelected ? '#0284c7' : '#1e293b'}
+                emissive={isModuleSelected ? '#38bdf8' : '#0369a1'}
+                emissiveIntensity={isModuleSelected ? 0.6 : 0.15}
+                metalness={0.92}
+                roughness={0.18}
+              />
+              <Edges color="#38bdf8" threshold={20} opacity={0.5} transparent />
+            </mesh>
+            <mesh position={[0, 0, moduleDepth / 2 + 0.015]} castShadow>
+              <boxGeometry args={[moduleWidth, cellH * 0.94, 0.03]} />
+              <meshStandardMaterial
+                color={isModuleSelected ? '#0284c7' : '#1e293b'}
+                emissive={isModuleSelected ? '#38bdf8' : '#0369a1'}
+                emissiveIntensity={isModuleSelected ? 0.6 : 0.15}
+                metalness={0.92}
+                roughness={0.18}
+              />
+              <Edges color="#38bdf8" threshold={20} opacity={0.5} transparent />
+            </mesh>
+
+            {/* Side Steel Compression Tie-Rods */}
+            {[-cellW / 2 - 0.025, cellW / 2 + 0.025].map((tx, ti) =>
+              [-cellH * 0.35, cellH * 0.35].map((ty, tyi) => (
+                <mesh key={`tierod-${ti}-${tyi}`} position={[tx, ty, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                  <cylinderGeometry args={[0.008, 0.008, moduleDepth + 0.06, 12]} />
+                  <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.1} />
+                </mesh>
+              ))
+            )}
+
+            {/* Slave BMS Telemetry Module Header & Ribbon Connector */}
+            <group position={[0, cellH / 2 + 0.04, -moduleDepth / 2 + 0.05]}>
+              <mesh castShadow>
+                <boxGeometry args={[moduleWidth * 0.65, 0.04, 0.08]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} />
+              </mesh>
+              <mesh position={[0, 0.025, 0]}>
+                <sphereGeometry args={[0.014, 12, 12]} />
+                <meshBasicMaterial color={isModuleSelected ? '#38bdf8' : '#10b981'} />
+              </mesh>
+            </group>
+          </group>
+        );
+      })}
+
+      {/* ======================================================== */}
+      {/* 4. INDIVIDUAL PRISMATIC BATTERY CELLS */}
+      {/* ======================================================== */}
+      {cellLayout.map(({ cell, pos }) => (
+        <PrismaticCell
+          key={`cell-${cell.cell_id}`}
+          cell={cell}
+          position={pos}
+          dimensions={[cellW, cellH, cellD]}
+          isSelected={selectedCellId === cell.cell_id}
+          isHovered={hoveredCellId === cell.cell_id}
+          mode={mode}
+          avgVoltage={avgVoltage}
+          packSoh={packSoh}
+          explodeFactor={explodeFactor}
+          onHover={(hovered) => setHoveredCellId(hovered ? cell.cell_id : null)}
+          onSelect={() => onSelectCell(cell)}
+        />
+      ))}
+
+      {/* ======================================================== */}
+      {/* 5. ELECTRICAL BUSBARS & CONNECTIONS */}
+      {/* ======================================================== */}
+      {cellLayout.map((item, idx) => {
+        // Connect consecutive cells within the same module in series
+        if (item.localIndex < cellsPerModule - 1) {
+          const nextItem = cellLayout[idx + 1];
+          if (nextItem && nextItem.moduleIndex === item.moduleIndex) {
+            return (
+              <BusbarInterconnect
+                key={`busbar-${item.cell.cell_id}-${nextItem.cell.cell_id}`}
+                startPos={item.termPosB}
+                endPos={nextItem.termPosA}
+                explodeFactor={explodeFactor}
+                mode={mode}
+              />
+            );
+          }
+        }
+        return null;
+      })}
+
+      {/* ======================================================== */}
+      {/* 6. HIGH VOLTAGE DISTRIBUTION & MASTER BDU JUNCTION BOX */}
+      {/* ======================================================== */}
+      <group position={[0, explodeFactor * 0.6, packLength / 2 - 0.22]}>
+        {/* Master BMS / BDU High Voltage Junction Box Enclosure */}
+        <mesh castShadow position={[0, 0.1, 0]}>
+          <boxGeometry args={[packWidth * 0.72, 0.22, 0.28]} />
+          <meshStandardMaterial
+            color="#ea580c"
+            metalness={0.85}
+            roughness={0.2}
+            emissive="#c2410c"
+            emissiveIntensity={0.25}
+          />
+          <Edges color="#f97316" threshold={20} opacity={0.6} transparent />
+        </mesh>
+
+        {/* Master Contactor Sockets */}
+        <group position={[-packWidth * 0.2, 0.12, 0.15]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh>
+            <cylinderGeometry args={[0.045, 0.045, 0.08, 16]} />
+            <meshStandardMaterial color="#ea580c" metalness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.045, 0]}>
+            <cylinderGeometry args={[0.025, 0.025, 0.02, 16]} />
+            <meshStandardMaterial color="#dc2626" />
+          </mesh>
+        </group>
+        <group position={[packWidth * 0.2, 0.12, 0.15]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh>
+            <cylinderGeometry args={[0.045, 0.045, 0.08, 16]} />
+            <meshStandardMaterial color="#ea580c" metalness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.045, 0]}>
+            <cylinderGeometry args={[0.025, 0.025, 0.02, 16]} />
+            <meshStandardMaterial color="#0f172a" />
+          </mesh>
+        </group>
+
+        {/* Orange HV Distribution Spine Conduits */}
+        <mesh position={[0, 0.04, -packLength * 0.25]}>
+          <boxGeometry args={[0.065, 0.035, packLength * 0.5]} />
+          <meshStandardMaterial
+            color="#ea580c"
+            emissive="#f97316"
+            emissiveIntensity={mode === 'ELECTRICAL' ? 2.0 : 1.2}
+          />
+        </mesh>
+      </group>
+
+      {/* ======================================================== */}
+      {/* 7. UPPER ENCLOSURE LID & PRESSURE EQUALIZATION VALVE */}
+      {/* ======================================================== */}
+      <group position={[0, topCoverY, 0]}>
+        {/* Upper Protective Cover Lid */}
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[packWidth + 0.04, 0.06, packLength + 0.04]} />
+          {mode === 'XRAY' ? (
+            <meshPhysicalMaterial
+              color="#38bdf8"
+              transparent
+              opacity={0.16}
+              roughness={0.1}
+              metalness={0.1}
+              clearcoat={1.0}
+              transmission={0.82}
+              depthWrite={false}
+            />
+          ) : (
+            <meshStandardMaterial
+              color="#090d16"
+              metalness={0.94}
+              roughness={0.18}
+              emissive="#0369a1"
+              emissiveIntensity={0.15}
+            />
+          )}
+          <Edges
+            color="#38bdf8"
+            threshold={25}
+            opacity={mode === 'XRAY' ? 0.75 : 0.45}
+            transparent
+          />
+        </mesh>
+
+        {/* High Voltage Hazard Warning Emblem Placard */}
+        <group position={[0, 0.035, 0]}>
+          <mesh>
+            <boxGeometry args={[0.55, 0.008, 0.32]} />
+            <meshStandardMaterial
+              color="#f59e0b"
+              emissive="#d97706"
+              emissiveIntensity={0.7}
+              metalness={0.4}
+              roughness={0.3}
+            />
+          </mesh>
+        </group>
+
+        {/* Pressure Equalization Membrane Gore-Tex Valve */}
+        <mesh position={[packWidth * 0.35, 0.035, packLength * 0.35]}>
+          <cylinderGeometry args={[0.04, 0.04, 0.015, 18]} />
+          <meshStandardMaterial color="#475569" metalness={0.9} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+// ==========================================
+// 7. PRIMARY BATTERY PACK 3D COMPONENT
 // ==========================================
 export interface BatteryPack3DProps {
   cells?: CellTelemetry[];
   packCurrent?: number;
   packVoltage?: number;
+  packSoh?: number;
   activeTopology?: PackTopology;
   onTopologyChange?: (t: PackTopology) => void;
   selectedCell?: CellTelemetry | null;
   onCellSelect?: (cell: CellTelemetry | null) => void;
-  telemetryData?: any;
+  selectedModule?: number | null;
+  onModuleSelect?: (modId: number | null) => void;
+  mode?: VisualizationMode;
+  onModeChange?: (m: VisualizationMode) => void;
+  explodedProgress?: number; // 0.0 to 1.0
+  onExplodedProgressChange?: (p: number) => void;
+  isLiveConnected?: boolean;
 }
 
 export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
   cells = [],
   packCurrent = 14.5,
   packVoltage = 25.6,
+  packSoh = 87.4,
   activeTopology = '8S1P',
   onTopologyChange,
   selectedCell = null,
-  onCellSelect
+  onCellSelect,
+  selectedModule = null,
+  onModuleSelect,
+  mode = 'NORMAL',
+  onModeChange,
+  explodedProgress = 0,
+  onExplodedProgressChange,
+  isLiveConnected = true
 }) => {
-  const [topology, setTopology] = useState<PackTopology>(activeTopology);
-  const [renderMode, setRenderMode] = useState<RenderMode>('REALISTIC');
-  const [drillStage, setDrillStage] = useState<DrillStage>('OVERVIEW');
-  const [exploded, setExploded] = useState<boolean>(false);
+  const [internalTopology, setInternalTopology] = useState<PackTopology>(activeTopology);
+  const [internalMode, setInternalMode] = useState<VisualizationMode>(mode);
+  const [internalExplode, setInternalExplode] = useState<number>(explodedProgress);
   const [autoRotate, setAutoRotate] = useState<boolean>(false);
-  const [showLabels, setShowLabels] = useState<boolean>(true);
+  const [viewPreset, setViewPreset] = useState<CameraViewPreset | null>(null);
 
   const controlsRef = useRef<any>(null);
 
+  // Synchronize internal and prop values smoothly
   useEffect(() => {
-    if (activeTopology && activeTopology !== topology) {
-      setTopology(activeTopology);
+    if (activeTopology && activeTopology !== internalTopology) {
+      setInternalTopology(activeTopology);
     }
   }, [activeTopology]);
 
   useEffect(() => {
-    if (selectedCell) {
-      setDrillStage('SINGLE_CELL');
+    if (mode && mode !== internalMode) {
+      setInternalMode(mode);
     }
-  }, [selectedCell]);
+  }, [mode]);
 
-  const handleTopologySelect = (t: PackTopology) => {
-    setTopology(t);
-    if (onTopologyChange) onTopologyChange(t);
+  useEffect(() => {
+    if (explodedProgress !== undefined && explodedProgress !== internalExplode) {
+      setInternalExplode(explodedProgress);
+    }
+  }, [explodedProgress]);
+
+  // When mode changes to EXPLODED, animate to 1.0
+  useEffect(() => {
+    if (internalMode === 'EXPLODED') {
+      setInternalExplode(1.0);
+      if (onExplodedProgressChange) onExplodedProgressChange(1.0);
+    } else if (internalMode === 'NORMAL' && internalExplode > 0) {
+      setInternalExplode(0.0);
+      if (onExplodedProgressChange) onExplodedProgressChange(0.0);
+    }
+  }, [internalMode]);
+
+  const topoInfo = TOPOLOGY_PRESETS[internalTopology] || TOPOLOGY_PRESETS['8S1P'];
+
+  // Mean voltage across active cells
+  const meanVoltage = useMemo(() => {
+    if (!cells || cells.length === 0) return 3.28;
+    const sum = cells.reduce((acc, c) => acc + (c.voltage ?? 3.28), 0);
+    return sum / cells.length;
+  }, [cells]);
+
+  const handleCellClick = (cell: CellTelemetry) => {
+    if (onCellSelect) {
+      if (selectedCell?.cell_id === cell.cell_id) {
+        onCellSelect(null);
+      } else {
+        onCellSelect(cell);
+      }
+    }
   };
 
-  const topoInfo = TOPOLOGY_PRESETS[topology] || TOPOLOGY_PRESETS['8S1P'];
-
-  // Up/back navigation
-  const handleNavigateUp = () => {
-    if (drillStage === 'SINGLE_CELL') {
-      setDrillStage('PACK_MODULE');
-      if (onCellSelect) onCellSelect(null);
-    } else if (drillStage === 'PACK_MODULE') {
-      setDrillStage('CHASSIS');
-    } else {
-      setDrillStage('OVERVIEW');
+  const handleModuleClick = (modId: number) => {
+    if (onModuleSelect) {
+      if (selectedModule === modId) {
+        onModuleSelect(null);
+      } else {
+        onModuleSelect(modId);
+      }
     }
   };
 
   const handleResetCamera = () => {
-    if (controlsRef.current) {
-      controlsRef.current.reset();
-    }
-    setDrillStage('OVERVIEW');
+    setViewPreset('ISOMETRIC');
     if (onCellSelect) onCellSelect(null);
+    if (onModuleSelect) onModuleSelect(null);
   };
 
-  const handleSelectCellById = (cellId: number) => {
-    const target = cells.find((c) => c.cell_id === cellId) || {
-      cell_id: cellId,
-      voltage: 3.227,
-      current: packCurrent,
-      temp_c: 26.5,
-      soc: 64.0,
-      internal_resistance_mohm: 36.0,
-      health_status: 'NOMINAL'
-    };
-    if (onCellSelect) onCellSelect(target);
-    setDrillStage('SINGLE_CELL');
+  const handleModeSelect = (newMode: VisualizationMode) => {
+    setInternalMode(newMode);
+    if (onModeChange) onModeChange(newMode);
   };
-
-  const activeCell: CellTelemetry =
-    selectedCell ||
-    cells[2] || {
-      cell_id: 3,
-      voltage: 3.227,
-      current: packCurrent,
-      temp_c: 26.5,
-      soc: 64.0,
-      internal_resistance_mohm: 36.0,
-      health_status: 'NOMINAL'
-    };
 
   return (
-    <div className="w-full h-[440px] sm:h-[540px] lg:h-[620px] rounded-2xl overflow-hidden bms-3d-bezel bg-[#040911] border border-white/10 shadow-2xl relative select-none">
-      {/* 3D WebGL Canvas */}
+    <div className="w-full h-full min-h-[440px] sm:min-h-[540px] lg:min-h-[620px] rounded-2xl overflow-hidden bg-[#030712] border border-white/10 shadow-2xl relative select-none">
+      {/* WebGL 3D Canvas with High-Precision Shadows & Lab Studio Lighting */}
       <Canvas
-        camera={{ position: [0.4, 2.4, 8.2], fov: 38 }}
-        gl={{ antialias: true, alpha: true }}
+        camera={{ position: [3.8, 3.2, 4.4], fov: 38 }}
+        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         style={{
+          touchAction: 'none',
           background:
-            'radial-gradient(ellipse at 50% 65%, rgba(6, 182, 212, 0.14) 0%, rgba(99, 102, 241, 0.08) 35%, #040911 82%)'
+            'radial-gradient(ellipse at 50% 60%, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.4) 40%, #030712 90%)'
         }}
       >
-        <ambientLight intensity={1.7} />
-        <directionalLight position={[0, 10, 8]} intensity={2.2} castShadow />
-        <directionalLight position={[-8, 6, 4]} intensity={1.5} />
-        <directionalLight position={[8, 6, 4]} intensity={1.5} />
-        <pointLight position={[-4, 4, 5]} intensity={2.2} color="#06b6d4" />
-        <pointLight position={[4, 4, 5]} intensity={2.2} color="#10b981" />
+        {/* Engineering Studio Lighting */}
+        <ambientLight intensity={1.4} color="#f8fafc" />
+        <directionalLight position={[6, 9, 7]} intensity={2.4} castShadow shadow-mapSize={1024} />
+        <directionalLight position={[-7, 6, -5]} intensity={1.2} color="#38bdf8" />
+        <pointLight position={[0, 4, 0]} intensity={1.8} color="#06b6d4" distance={9} />
+        <pointLight position={[0, -2, 0]} intensity={1.2} color="#10b981" distance={6} />
 
         <OrbitControls
           ref={controlsRef}
           enableDamping
           dampingFactor={0.06}
           autoRotate={autoRotate}
-          autoRotateSpeed={1.2}
-          maxPolarAngle={Math.PI / 2 + 0.12}
-          minDistance={2.0}
-          maxDistance={15}
+          autoRotateSpeed={1.0}
+          minDistance={1.8}
+          maxDistance={12.0}
+          maxPolarAngle={Math.PI / 2 + 0.15}
         />
 
-        <CameraRig drillStage={drillStage} />
+        <CameraController
+          viewPreset={viewPreset}
+          onPresetComplete={() => setViewPreset(null)}
+          targetPosition={null}
+          controlsRef={controlsRef}
+        />
 
-        <Float speed={autoRotate ? 0 : 0.6} rotationIntensity={0.03} floatIntensity={0.05}>
-          <group rotation={[0.07, 0.08, 0]}>
-            {/* ---------------------------------------------------- */}
-            {/* 1. LEFT STAGE: GHOSTED EV CHASSIS SKATEBOARD */}
-            {/* ---------------------------------------------------- */}
-            <EVChassisGhost
-              onSelect={() => setDrillStage('CHASSIS')}
-              renderMode={renderMode}
-            />
+        {/* 3D Assembled Battery Pack System */}
+        <AssembledBatteryPack
+          cells={cells}
+          topology={topoInfo}
+          mode={internalMode}
+          explodeFactor={internalExplode}
+          selectedCellId={selectedCell?.cell_id ?? null}
+          selectedModuleId={selectedModule}
+          avgVoltage={meanVoltage}
+          packSoh={packSoh}
+          onSelectCell={handleCellClick}
+          onSelectModule={handleModuleClick}
+        />
 
-            {/* Dotted Glowing Cyan Bezier Arrow (Chassis -> Tray) */}
-            <CurvedTransferArrow
-              start={[-3.1, -0.3, 0.2]}
-              mid={[-1.9, -0.55, 0.8]}
-              end={[-0.9, -0.35, 0.4]}
-            />
-
-            {/* ---------------------------------------------------- */}
-            {/* 2. CENTER STAGE: SKATEBOARD TRAY & BATTERY MODULES */}
-            {/* ---------------------------------------------------- */}
-            <SkateboardTrayWithModules
-              onSelectCell={handleSelectCellById}
-              renderMode={renderMode}
-              exploded={exploded}
-            />
-
-            {/* Dotted Glowing Cyan Bezier Arrow (Tray -> Single Cell) */}
-            <CurvedTransferArrow
-              start={[1.4, -0.1, 0.2]}
-              mid={[2.4, -0.55, 0.8]}
-              end={[3.0, -0.35, 0.4]}
-            />
-
-            {/* ---------------------------------------------------- */}
-            {/* 3. RIGHT STAGE: SINGLE CELL BIFURCATION & HUD TARGET */}
-            {/* ---------------------------------------------------- */}
-            <SingleCellHeroAssembly
-              cell={activeCell}
-              renderMode={renderMode}
-              showLabels={showLabels}
-            />
-          </group>
-        </Float>
-
+        {/* Ground Contact Soft Shadow */}
         <ContactShadows
-          position={[0, -1.45, 0]}
-          opacity={0.45}
-          scale={15}
-          blur={2.5}
-          far={5.5}
-          color="#06b6d4"
+          position={[0, -1.25, 0]}
+          opacity={0.65}
+          scale={14}
+          blur={2.4}
+          far={5.0}
+          color="#0284c7"
         />
       </Canvas>
 
-      {/* ========================================== */}
-      {/* TOP-LEFT TOPOLOGY & TOP-RIGHT RENDER MODES */}
-      {/* ========================================== */}
-      <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 right-2.5 sm:right-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pointer-events-auto z-10">
-        {/* Topology Selector & Voltage/kWh Readout */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#040911]/90 backdrop-blur-md border border-emerald-500/25 shadow-xl overflow-x-auto max-w-full custom-scrollbar">
-          <span className="text-[8.5px] sm:text-[9px] font-orbitron font-bold text-emerald-400 px-1.5 sm:px-2 py-0.5 flex items-center gap-1 flex-shrink-0">
-            <Cpu className="w-3 h-3 text-emerald-400" />
-          </span>
-          {(['8S1P', '16S1P', '16S2P', '24S2P', '32S4P'] as PackTopology[]).map((t) => (
+      {/* ======================================================== */}
+      {/* FLOATING HUD CONTROLS: TOP-BAR STATUS & CAMERA PRESETS */}
+      {/* ======================================================== */}
+      <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 pointer-events-auto z-10">
+        {/* Left: Pack Topology & Real-time Live Badge */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#040911]/90 backdrop-blur-md border border-white/10 shadow-xl">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-orbitron text-[10px] font-bold">
+            <span className={`w-2 h-2 rounded-full ${isLiveConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span>{isLiveConnected ? 'TELEMETRY ONLINE' : 'SIMULATOR MODE'}</span>
+          </div>
+
+          <div className="px-2.5 py-1 text-[10px] font-mono text-slate-300">
+            <strong className="text-white">{topoInfo.series}S{topoInfo.parallel}P</strong> • {topoInfo.nominalVoltage.toFixed(1)}V • {topoInfo.energyKwh.toFixed(2)} kWh
+          </div>
+        </div>
+
+        {/* Right: Quick Camera View Presets */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#040911]/90 backdrop-blur-md border border-white/10 shadow-xl">
+          {(['ISOMETRIC', 'TOP', 'FRONT', 'SIDE'] as CameraViewPreset[]).map((preset) => (
             <button
-              key={t}
-              onClick={() => handleTopologySelect(t)}
-              className={`px-2 sm:px-2.5 py-1 text-[8.5px] sm:text-[9px] font-orbitron font-bold rounded-lg transition-all flex-shrink-0 ${
-                topology === t
-                  ? 'bg-emerald-500 text-slate-950 shadow-[0_0_12px_rgba(16,185,129,0.7)] scale-105'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
+              key={preset}
+              onClick={() => setViewPreset(preset)}
+              className="px-2.5 py-1 rounded-lg text-[9.5px] font-orbitron font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all"
             >
-              {t}
+              {preset}
             </button>
           ))}
-          <span className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 pl-2 pr-2 border-l border-slate-700/60 hidden md:inline-block flex-shrink-0">
-            {topoInfo.nominalVoltage}V • {topoInfo.energyKwh.toFixed(2)} kWh ({topoInfo.totalCells} Cells)
-          </span>
-        </div>
 
-        {/* Render Modes Switcher */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#040911]/90 backdrop-blur-md border border-cyan-500/25 shadow-xl self-start sm:self-auto overflow-x-auto max-w-full custom-scrollbar">
-          {(
-            [
-              { mode: 'REALISTIC', label: '3D Pack', icon: <Layers className="w-3 h-3" /> },
-              { mode: 'THERMAL', label: 'Thermal', icon: <Flame className="w-3 h-3 text-amber-400" /> },
-              { mode: 'VOLTAGE', label: 'Voltage', icon: <Zap className="w-3 h-3 text-cyan-400" /> },
-              { mode: 'XRAY', label: 'X-Ray', icon: <Eye className="w-3 h-3 text-purple-400" /> }
-            ] as Array<{ mode: RenderMode; label: string; icon: React.ReactNode }>
-          ).map((m) => (
-            <button
-              key={m.mode}
-              onClick={() => setRenderMode(m.mode)}
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[8.5px] sm:text-[9px] font-orbitron font-bold rounded-lg transition-all flex-shrink-0 ${
-                renderMode === m.mode
-                  ? 'bg-blue-600 text-white shadow-[0_0_12px_rgba(59,130,246,0.6)]'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              {m.icon}
-              <span>{m.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+          <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
-      {/* ========================================== */}
-      {/* 3-TIER DRILL-DOWN BREADCRUMB & BACK BUTTON */}
-      {/* ========================================== */}
-      <div className="absolute top-14 left-3 flex items-center gap-2 pointer-events-auto z-10">
-        <button
-          onClick={handleNavigateUp}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950/85 hover:bg-slate-800 border border-slate-700/80 text-cyan-400 text-[9px] font-orbitron font-bold shadow-lg transition"
-        >
-          <ArrowLeft className="w-3 h-3" />
-          <span>
-            {drillStage === 'SINGLE_CELL'
-              ? '← BACK TO MODULE'
-              : drillStage === 'PACK_MODULE'
-              ? '← BACK TO CHASSIS'
-              : '← RESET OVERVIEW'}
-          </span>
-        </button>
-
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-950/85 border border-white/10 text-[9px] font-mono text-slate-300 backdrop-blur-md">
-          <span
-            onClick={() => setDrillStage('CHASSIS')}
-            className={`cursor-pointer hover:text-cyan-300 ${drillStage === 'CHASSIS' ? 'text-cyan-400 font-bold' : 'text-slate-400'}`}
-          >
-            CHASSIS
-          </span>
-          <ChevronRight className="w-2.5 h-2.5 text-slate-600" />
-          <span
-            onClick={() => setDrillStage('PACK_MODULE')}
-            className={`cursor-pointer hover:text-cyan-300 ${drillStage === 'PACK_MODULE' ? 'text-cyan-400 font-bold' : 'text-slate-400'}`}
-          >
-            MODULE BAYS
-          </span>
-          <ChevronRight className="w-2.5 h-2.5 text-slate-600" />
-          <span
-            onClick={() => setDrillStage('SINGLE_CELL')}
-            className={`cursor-pointer hover:text-cyan-300 ${drillStage === 'SINGLE_CELL' ? 'text-emerald-400 font-bold' : 'text-slate-400'}`}
-          >
-            CELL C{activeCell.cell_id}
-          </span>
-        </div>
-      </div>
-
-      {/* ========================================== */}
-      {/* RIGHT-SIDE TELEMETRY INSPECTION DRAWER */}
-      {/* ========================================== */}
-      <div className="absolute top-14 right-3 p-3.5 rounded-2xl bg-[#040911]/95 backdrop-blur-xl border border-cyan-500/30 text-white font-mono z-20 shadow-2xl w-60 animate-in fade-in slide-in-from-right-3">
-        <div className="flex items-center justify-between gap-3 mb-2.5 border-b border-cyan-500/20 pb-1.5">
-          <span className="font-orbitron font-bold text-[10px] tracking-wider text-cyan-400">
-            CELL & MODULE TELEMETRY
-          </span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        </div>
-
-        <ul className="space-y-1.5 text-[9.5px]">
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• Pack Stage:</span>
-            <span className="font-bold text-cyan-300">
-              {drillStage === 'CHASSIS' ? 'Chassis' : drillStage === 'PACK_MODULE' ? 'Module' : 'Single Cell'}
-            </span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• Active Module:</span>
-            <span className="font-bold text-white">M1</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• Cell Target:</span>
-            <span className="font-bold text-emerald-400">C{activeCell.cell_id}</span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• Voltage:</span>
-            <span className="font-bold text-white tabular-nums">
-              {(activeCell.voltage ?? 3.227).toFixed(3)} V
-            </span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• Temp:</span>
-            <span className="font-bold text-slate-200 tabular-nums">
-              {(activeCell.temp_c ?? 26.5).toFixed(1)} °C
-            </span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• State of Charge:</span>
-            <span className="font-bold text-emerald-400 tabular-nums">
-              {(activeCell.soc ?? 64.0).toFixed(1)}%
-            </span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• Internal IR:</span>
-            <span className="font-bold text-slate-300 tabular-nums">
-              {(activeCell.internal_resistance_mohm ?? 36.0).toFixed(2)} mΩ
-            </span>
-          </li>
-          <li className="flex items-center justify-between">
-            <span className="text-slate-400">• State:</span>
-            <span className="font-bold text-cyan-300 uppercase">
-              {activeCell.health_status || 'BALANCED'}
-            </span>
-          </li>
-        </ul>
-      </div>
-
-      {/* ========================================== */}
-      {/* BOTTOM INTERACTIVE TOOLBAR */}
-      {/* ========================================== */}
-      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto z-10">
-        {/* Real-time Status Badge & Navigation Hint */}
-        <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2 bg-[#040911]/90 px-3 py-1.5 rounded-xl border border-slate-800/80 backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-          <span className="text-emerald-400 font-semibold font-orbitron text-[9px]">REAL-TIME 60 FPS</span>
-          <span className="text-slate-600">│</span>
-          <span className="hidden md:inline text-slate-400">
-            Drag: Rotate • Scroll: Zoom • Click cell/module to expand
-          </span>
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center gap-1.5">
-          {/* Toggle Labels */}
-          <button
-            onClick={() => setShowLabels(!showLabels)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[9px] font-orbitron font-bold border transition-all ${
-              showLabels
-                ? 'bg-blue-600/25 border-blue-500 text-blue-300'
-                : 'bg-slate-950/85 border-slate-700/60 text-slate-400 hover:text-white'
-            }`}
-            title="Toggle Cell ID Tags"
-          >
-            <Radio className="w-3 h-3" />
-            <span className="hidden sm:inline">LABELS</span>
-          </button>
-
-          {/* Explode Bifurcations Toggle */}
-          <button
-            onClick={() => setExploded(!exploded)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-orbitron font-bold border transition-all ${
-              exploded
-                ? 'bg-purple-600/30 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                : 'bg-slate-950/85 border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-800/80'
-            }`}
-          >
-            <Sparkles className="w-3 h-3 text-purple-400" />
-            <span>{exploded ? 'COLLAPSE' : 'EXPLODE BIFURCATIONS'}</span>
-          </button>
-
-          {/* Auto Rotate 360 Toggle */}
           <button
             onClick={() => setAutoRotate(!autoRotate)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-orbitron font-bold border transition-all ${
-              autoRotate
-                ? 'bg-emerald-600/30 border-emerald-500 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
-                : 'bg-slate-950/85 border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-800/80'
+            className={`p-1.5 rounded-lg text-[10px] font-mono transition-all flex items-center gap-1 ${
+              autoRotate ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40' : 'text-slate-400 hover:text-white'
             }`}
+            title="Toggle 360° Auto-Rotate"
           >
-            <RotateCcw className={`w-3 h-3 ${autoRotate ? 'animate-spin' : ''}`} />
-            <span>360° SPIN</span>
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
-          {/* Reset Camera View */}
           <button
             onClick={handleResetCamera}
-            className="p-1.5 rounded-xl bg-slate-950/85 hover:bg-slate-800 border border-slate-700/60 text-slate-400 hover:text-white transition"
-            title="Reset Camera & Selection"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white transition-all"
+            title="Reset Camera View"
           >
-            <Maximize2 className="w-3.5 h-3.5" />
+            <Compass className="w-3.5 h-3.5" />
           </button>
         </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* FLOATING HUD CONTROLS: BOTTOM-BAR EXPLODED VIEW SLIDER */}
+      {/* ======================================================== */}
+      <div className="absolute bottom-3 left-3 right-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 pointer-events-auto z-10">
+        {/* Exploded View Separation Slider */}
+        <div className="w-full sm:w-auto flex items-center gap-3 px-3.5 py-2 rounded-xl bg-[#040911]/95 backdrop-blur-md border border-white/10 shadow-xl">
+          <div className="flex items-center gap-1.5 text-cyan-400 font-orbitron text-[10px] font-bold tracking-wider">
+            <Layers className="w-3.5 h-3.5" />
+            <span>EXPLODED VIEW:</span>
+          </div>
+
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={internalExplode}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value);
+              setInternalExplode(val);
+              if (onExplodedProgressChange) onExplodedProgressChange(val);
+            }}
+            className="w-32 sm:w-44 accent-cyan-400 cursor-pointer"
+          />
+
+          <span className="text-[10px] font-mono text-cyan-300 tabular-nums min-w-[38px] text-right">
+            {(internalExplode * 100).toFixed(0)}%
+          </span>
+
+          <button
+            onClick={() => {
+              const next = internalExplode > 0.05 ? 0.0 : 1.0;
+              setInternalExplode(next);
+              if (onExplodedProgressChange) onExplodedProgressChange(next);
+            }}
+            className="px-2 py-0.5 rounded text-[9px] font-orbitron font-bold uppercase tracking-wider bg-white/10 hover:bg-white/20 text-white transition-all"
+          >
+            {internalExplode > 0.05 ? 'Assemble' : 'Explode'}
+          </button>
+        </div>
+
+        {/* Interactive Selection Quick Clear */}
+        {(selectedCell || selectedModule) && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-950/80 backdrop-blur-md border border-cyan-500/40 text-cyan-300 text-[10px] font-mono shadow-xl">
+            <span>
+              Target: <strong className="text-white">{selectedCell ? `Cell C${selectedCell.cell_id}` : `Module ${selectedModule}`}</strong>
+            </span>
+            <button
+              onClick={() => {
+                if (onCellSelect) onCellSelect(null);
+                if (onModuleSelect) onModuleSelect(null);
+              }}
+              className="px-1.5 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/40 text-white text-[9px] font-bold"
+            >
+              Clear
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

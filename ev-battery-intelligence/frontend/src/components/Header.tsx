@@ -19,11 +19,14 @@ import {
   SlidersHorizontal,
   Bluetooth,
   LogOut,
-  User
+  User,
+  Battery,
+  Plus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { HardwareSourceMode, HardwareStatus } from '../services/hardwareTelemetry';
 import { OperatorSession } from './VoltLoginGateway';
+import { BatteryRecord } from '../services/api';
 
 interface HeaderProps {
   scenario: string;
@@ -40,6 +43,11 @@ interface HeaderProps {
   onToggleSidebar?: () => void;
   operatorSession?: OperatorSession | null;
   onSignOut?: () => void;
+  batteries?: BatteryRecord[];
+  activeBatteryId?: string;
+  onSelectBattery?: (batteryId: string) => void;
+  onOpenRegisterBattery?: () => void;
+  lastSyncTime?: string;
 }
 
 const SCENARIOS = [
@@ -71,7 +79,12 @@ export const Header: React.FC<HeaderProps> = ({
   activeAlertCount,
   onToggleSidebar,
   operatorSession,
-  onSignOut
+  onSignOut,
+  batteries = [],
+  activeBatteryId = 'EV-001',
+  onSelectBattery,
+  onOpenRegisterBattery,
+  lastSyncTime
 }) => {
   const [currentTime, setCurrentTime] = useState<string>('');
 
@@ -111,13 +124,42 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="text-white/30 font-mono text-[10px] sm:text-xs">/</span>
                   <span className="hidden sm:inline text-slate-300 text-[10px] sm:text-xs tracking-wider">NEURAL BATTERY LAB</span>
                 </h1>
-                <span className="text-[8px] sm:text-[8.5px] font-orbitron uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
-                  LFP 8S1P
-                </span>
+                
+                {/* Active Battery Pack Selector Dropdown */}
+                {batteries && batteries.length > 0 && onSelectBattery ? (
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono text-cyan-300">
+                    <Battery className="w-3 h-3 text-cyan-400" />
+                    <select
+                      value={activeBatteryId}
+                      onChange={(e) => onSelectBattery(e.target.value)}
+                      className="bg-transparent text-cyan-300 font-bold focus:outline-none cursor-pointer pr-1"
+                      title="Select Battery Pack"
+                    >
+                      {batteries.map((b) => (
+                        <option key={b.battery_id} value={b.battery_id} className="bg-[#090c14] text-white">
+                          {b.battery_id} ({b.battery_name})
+                        </option>
+                      ))}
+                    </select>
+                    {onOpenRegisterBattery && (
+                      <button
+                        onClick={onOpenRegisterBattery}
+                        className="p-0.5 rounded hover:bg-cyan-500/20 text-cyan-400 hover:text-white transition"
+                        title="Register New Battery Pack"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-[8px] sm:text-[8.5px] font-orbitron uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                    LFP 8S1P
+                  </span>
+                )}
               </div>
               
               <div className="hidden 2xl:flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5 whitespace-nowrap">
-                <span>Battery: <strong className="text-slate-200 font-semibold">EV-BAT-001</strong></span>
+                <span>Active Pack: <strong className="text-slate-200 font-semibold">{activeBatteryId}</strong></span>
                 <span className="text-white/20">│</span>
                 <span>Vehicle: <strong className="text-cyan-400 font-semibold">KA05ER7777</strong></span>
                 <span className="text-white/20">│</span>
@@ -133,6 +175,10 @@ export const Header: React.FC<HeaderProps> = ({
               <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isConnected || hardwareMode !== 'SIMULATOR' ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]'}`} />
               <span className={`${isConnected || hardwareMode !== 'SIMULATOR' ? 'text-emerald-400' : 'text-cyan-400'} font-bold font-orbitron text-[8.5px] sm:text-[9px]`}>
                 {hardwareMode === 'BLUETOOTH' ? 'BLE 10Hz' : hardwareMode === 'WIFI' ? 'WI-FI 10Hz' : hardwareMode === 'SERIAL' ? 'SERIAL 20Hz' : isConnected ? 'LIVE 1Hz' : 'ONLINE 1Hz'}
+              </span>
+              <span className="hidden sm:inline text-white/20">│</span>
+              <span className="hidden sm:inline text-slate-300 font-mono text-[9px]">
+                SYNC: <strong className="text-cyan-400 font-bold">{lastSyncTime || currentTime || '12:00:00 AM'}</strong>
               </span>
               <span className="hidden 2xl:inline text-white/20">│</span>
               <span className="hidden 2xl:inline text-slate-400 text-[9px]">

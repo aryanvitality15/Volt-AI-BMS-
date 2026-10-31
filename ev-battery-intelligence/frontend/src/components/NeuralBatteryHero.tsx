@@ -387,20 +387,20 @@ function BatteryPack3DScene({
     <>
       <OrbitControls
         enableZoom={true}
-        minDistance={2.4}
-        maxDistance={6.5}
-        enablePan={false}
+        minDistance={1.8}
+        maxDistance={7.5}
+        enablePan={true}
         autoRotate={autoRotate}
         autoRotateSpeed={0.8}
-        dampingFactor={0.08}
-        minPolarAngle={Math.PI / 4.8}
-        maxPolarAngle={Math.PI / 2.05}
+        dampingFactor={0.06}
+        minPolarAngle={0.08}
+        maxPolarAngle={Math.PI / 2 + 0.15}
       />
 
       {/* Atmospheric Cinematic Studio Lighting */}
-      <ambientLight intensity={0.65} color="#cbd5e1" />
-      <directionalLight position={[4, 6, 4]} intensity={1.5} color="#ffffff" castShadow />
-      <directionalLight position={[-4, 4, -3]} intensity={0.7} color="#38bdf8" />
+      <ambientLight intensity={1.2} color="#f8fafc" />
+      <directionalLight position={[4, 6, 4]} intensity={2.0} color="#ffffff" castShadow />
+      <directionalLight position={[-4, 4, -3]} intensity={1.0} color="#38bdf8" />
       <pointLight position={[0, 2.5, 0]} intensity={1.8} color="#06b6d4" distance={5} />
       <pointLight
         position={[0, -0.6, 0]}
@@ -409,7 +409,7 @@ function BatteryPack3DScene({
         distance={4}
       />
 
-      <Float speed={1.2} rotationIntensity={0.12} floatIntensity={0.15}>
+      <Float speed={autoRotate ? 0 : 0.6} rotationIntensity={0} floatIntensity={0.04}>
         <group position={[0, -0.25, 0]}>
           {/* 3D Tray & Elevating Enclosure */}
           <BatteryPackEnclosure totalCells={totalCells} exploded={exploded} />
@@ -575,7 +575,7 @@ export const NeuralBatteryHero: React.FC<NeuralBatteryHeroProps> = ({
               shadows
               camera={{ position: [0, 2.2, 4.2], fov: 42 }}
               gl={{ antialias: true, alpha: true }}
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: '100%', height: '100%', touchAction: 'none' }}
               onError={() => setWebglFailed(true)}
             >
               <BatteryPack3DScene

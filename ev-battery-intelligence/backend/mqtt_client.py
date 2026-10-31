@@ -120,6 +120,7 @@ class MqttManager:
 
             # Ingest if valid pack summary
             if "battery_id" in data and ("cells" in data or "voltage" in data):
+                data.setdefault("data_source", "MQTT_TELEMETRY")
                 if self.on_telemetry_received:
                     self.on_telemetry_received(data)
                     

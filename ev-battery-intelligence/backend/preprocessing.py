@@ -53,10 +53,11 @@ class FeaturePipeline:
         if not cells:
             return {}
             
-        voltages = [float(c["voltage"]) for c in cells]
-        temps = [float(c["temperature"]) for c in cells]
-        currents = [float(c["current"]) for c in cells]
-        resistances = [float(c["internal_resistance"]) for c in cells]
+        voltages = [float(c.get("voltage", 3.2)) for c in cells]
+        temps = [float(c.get("temperature", c.get("temp_c", 25.0))) for c in cells]
+        pack_curr = float(pack_summary.get("pack_current", pack_summary.get("current", 0.0)))
+        currents = [float(c.get("current", pack_curr)) for c in cells]
+        resistances = [float(c.get("internal_resistance", c.get("internal_resistance_mohm", settings.NOMINAL_CELL_RESISTANCE_MOHM))) for c in cells]
         
         # Historical buffer management for smoothing
         self.voltage_history.append(float(pack_summary.get("pack_voltage", sum(voltages))))

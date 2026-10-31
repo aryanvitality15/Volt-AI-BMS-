@@ -12,16 +12,19 @@ import { AIExplainabilityView } from './views/AIExplainabilityView';
 import { MLModelView } from './views/MLModelView';
 import { DataExplorationView } from './views/DataExplorationView';
 import { ReportsView } from './views/ReportsView';
+import { DataHistoryView } from './views/DataHistoryView';
 
 import { PassportModal } from './components/PassportModal';
 import { WhatIfModal } from './components/WhatIfModal';
 import { AlertsDrawer } from './components/AlertsDrawer';
 import { SelfLearningModal } from './components/SelfLearningModal';
+import { RegisterBatteryModal } from './components/RegisterBatteryModal';
 import { ParticleField } from './components/ParticleField';
 import { NeuralBootSequence } from './components/NeuralBootSequence';
 import { BatteryState, AlertItem, CellTelemetry } from './types';
 import { HardwareConnectModal } from './components/HardwareConnectModal';
 import { VoltLoginGateway, OperatorSession } from './components/VoltLoginGateway';
+import { api, BatteryRecord } from './services/api';
 import {
   bluetoothManager,
   wifiManager,
@@ -130,7 +133,7 @@ export default function App() {
   const [history, setHistory] = useState<Array<{ timestamp: string; voltage: number; current: number; temp: number; soh: number }>>([]);
   const [selectedCell, setSelectedCell] = useState<CellTelemetry | null>(null);
 
-  // Operator Authentication Session State (Defaults to instant demo session for smooth evaluation, with sign-out support)
+  // Operator Authentication Session State
   const [operatorSession, setOperatorSession] = useState<OperatorSession | null>(() => {
     try {
       const stored = localStorage.getItem('volt_bms_session');
@@ -143,15 +146,14 @@ export default function App() {
     } catch {
       // Ignore
     }
-    return {
-      name: 'Aryan Chaudhary',
-      email: 'operator@voltbms.io',
-      role: 'BMS Engineer',
-      authMethod: 'demo',
-      sessionExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      timestamp: new Date().toISOString()
-    };
+    return null;
   });
+
+  // User Battery Pack Scoping State
+  const [batteries, setBatteries] = useState<BatteryRecord[]>([]);
+  const [activeBatteryId, setActiveBatteryId] = useState<string>('EV-001');
+  const [isRegisterBatteryOpen, setIsRegisterBatteryOpen] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   const [isBooting, setIsBooting] = useState<boolean>(() => {
     try {
@@ -161,20 +163,124 @@ export default function App() {
     }
   });
 
+  // Verify stored session token against real backend on mount
+  useEffect(() => {
+    const token = localStorage.getItem('volt_bms_token') || localStorage.getItem('volt_session_token');
+    if (token) {
+      api.getMe().then((res) => {
+        if (res.authenticated && res.user) {
+          setOperatorSession({
+            user_id: res.user.user_id,
+            name: res.user.name,
+            email: res.user.email,
+            role: res.user.role,
+            authMethod: 'token',
+            sessionExpiry: Date.now() + 24 * 60 * 60 * 1000,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }).catch(() => {
+        handleSignOut();
+      });
+    }
+  }, []);
+
+  // Fetch registered battery packs for authenticated user
+  const refreshUserBatteries = async () => {
+    if (!operatorSession) return;
+    try {
+      const list = await api.getUserBatteries();
+      if (list && list.length > 0) {
+        setBatteries(list);
+        if (!list.some((b) => b.battery_id === activeBatteryId)) {
+          setActiveBatteryId(list[0].battery_id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load user batteries:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (operatorSession) {
+      refreshUserBatteries();
+    }
+  }, [operatorSession]);
+
+  // Sync real database telemetry and cell states for active battery
+  useEffect(() => {
+    if (!activeBatteryId) return;
+    let isMounted = true;
+
+    const syncBatteryData = async () => {
+      try {
+        const [packData, cellsData] = await Promise.all([
+          api.getScopedPack(activeBatteryId),
+          api.getScopedCells(activeBatteryId)
+        ]);
+
+        if (isMounted && packData) {
+          setLastSyncTime(new Date().toLocaleTimeString());
+          setData((prev) => ({
+            ...prev,
+            timestamp: packData.timestamp || new Date().toISOString(),
+            pack: {
+              ...prev.pack,
+              voltage: Number(packData.voltage ?? prev.pack.voltage),
+              current: Number(packData.current ?? prev.pack.current),
+              soc: Number(packData.soc ?? prev.pack.soc),
+              cycle: Number(packData.cycle_count ?? prev.pack.cycle),
+              avg_temp: Number(packData.avg_temp ?? prev.pack.avg_temp),
+              max_temp: Number(packData.max_temp ?? prev.pack.max_temp),
+              min_temp: Number(packData.min_temp ?? prev.pack.min_temp),
+            },
+            cells: (cellsData && cellsData.length > 0)
+              ? cellsData.map((c: any) => ({
+                  cell_id: c.cell_id,
+                  voltage: Number(c.voltage),
+                  current: Number(c.current ?? packData.current ?? prev.pack.current),
+                  temp_c: Number(c.temperature),
+                  soc: Number(c.soc),
+                  internal_resistance_mohm: Number(c.internal_resistance_mohm ?? 32.0),
+                  health_status: c.health_status || "NORMAL"
+                }))
+              : prev.cells
+          }));
+        }
+      } catch (e) {
+        // Backend offline, fallback to simulation
+      }
+    };
+
+    syncBatteryData();
+    const interval = setInterval(syncBatteryData, 4000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeBatteryId]);
+
   const handleLoginSuccess = (session: OperatorSession) => {
     setOperatorSession(session);
     setIsBooting(true);
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Ignore
+    }
     try {
       localStorage.removeItem('volt_bms_session');
+      localStorage.removeItem('volt_bms_token');
       sessionStorage.removeItem('volt_booted');
     } catch {
       // Ignore
     }
     setIsBooting(true);
     setOperatorSession(null);
+    setBatteries([]);
   };
 
   // Modals & Drawers
@@ -754,6 +860,11 @@ export default function App() {
           onToggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           operatorSession={operatorSession}
           onSignOut={handleSignOut}
+          batteries={batteries}
+          activeBatteryId={activeBatteryId}
+          onSelectBattery={(id) => setActiveBatteryId(id)}
+          onOpenRegisterBattery={() => setIsRegisterBatteryOpen(true)}
+          lastSyncTime={lastSyncTime || undefined}
         />
 
         {/* Dynamic Viewport Router */}
@@ -786,6 +897,9 @@ export default function App() {
                 data={data}
                 selectedCell={selectedCell}
                 onSelectCell={setSelectedCell}
+                alerts={alerts}
+                isLiveBackend={isLiveBackend}
+                activeBatteryId={activeBatteryId}
               />
             )}
 
@@ -825,11 +939,29 @@ export default function App() {
                 onScenarioChange={handleScenarioChange}
               />
             )}
+
+            {activeTab === 'data-history' && (
+              <DataHistoryView
+                key="data-history"
+                activeBatteryId={activeBatteryId}
+                batteries={batteries}
+                onSelectBattery={(id) => setActiveBatteryId(id)}
+              />
+            )}
           </AnimatePresence>
         </main>
       </div>
 
       {/* Dedicated Modals & Drawers */}
+      <RegisterBatteryModal
+        isOpen={isRegisterBatteryOpen}
+        onClose={() => setIsRegisterBatteryOpen(false)}
+        onBatteryCreated={(newBattery) => {
+          setBatteries((prev) => [newBattery, ...prev]);
+          setActiveBatteryId(newBattery.battery_id);
+        }}
+      />
+
       <PassportModal
         isOpen={isPassportOpen}
         onClose={() => setIsPassportOpen(false)}
