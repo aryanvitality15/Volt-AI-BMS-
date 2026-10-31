@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Compass } from 'lucide-react';
 import { Header } from './components/Header';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { DashboardView } from './views/DashboardView';
@@ -149,6 +150,39 @@ export default function App() {
     return null;
   });
 
+  // Interactive Demo Tour State for New Visitors
+  const [isDemoTourActive, setIsDemoTourActive] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('volt_demo_tour_active') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [tourStep, setTourStep] = useState<number>(0);
+
+  const TOUR_STEPS: Array<{ title: string; desc: string; tab: NavTab }> = [
+    {
+      title: "400V Digital Twin Dashboard",
+      desc: "Live Pack State of Charge (64.8%), 8-Cell balancing matrix, dynamic thermal envelope, and instant safety risk index.",
+      tab: "dashboard"
+    },
+    {
+      title: "Individual Cell Telemetry Matrix",
+      desc: "High-resolution millivolt tracking across all 8 series cells, internal resistance (mΩ) growth, and voltage sag detection.",
+      tab: "live-monitor"
+    },
+    {
+      title: "3D Spatial Battery Pack Visualizer",
+      desc: "Interactive 3D pack rendering with live thermal heatmaps and individual cell physical selection.",
+      tab: "battery-pack"
+    },
+    {
+      title: "Neural SOH & RUL Prognostics",
+      desc: "Online machine learning degradation trajectories, physics-informed aging models, and Remaining Useful Life forecasting.",
+      tab: "soh-degradation"
+    }
+  ];
+
   // User Battery Pack Scoping State
   const [batteries, setBatteries] = useState<BatteryRecord[]>([]);
   const [activeBatteryId, setActiveBatteryId] = useState<string>('EV-001');
@@ -180,7 +214,15 @@ export default function App() {
           });
         }
       }).catch(() => {
-        handleSignOut();
+        // Resilient fallback: keep local stored session if valid
+        try {
+          const stored = localStorage.getItem('volt_bms_session');
+          if (!stored) {
+            handleSignOut();
+          }
+        } catch {
+          // Retain session
+        }
       });
     }
   }, []);
@@ -263,6 +305,10 @@ export default function App() {
   const handleLoginSuccess = (session: OperatorSession) => {
     setOperatorSession(session);
     setIsBooting(true);
+    if (sessionStorage.getItem('volt_demo_tour_active') === 'true') {
+      setIsDemoTourActive(true);
+      setTourStep(0);
+    }
   };
 
   const handleSignOut = async () => {
@@ -274,13 +320,16 @@ export default function App() {
     try {
       localStorage.removeItem('volt_bms_session');
       localStorage.removeItem('volt_bms_token');
+      localStorage.removeItem('volt_session_token');
       sessionStorage.removeItem('volt_booted');
+      sessionStorage.removeItem('volt_demo_tour_active');
     } catch {
       // Ignore
     }
     setIsBooting(true);
     setOperatorSession(null);
     setBatteries([]);
+    setIsDemoTourActive(false);
   };
 
   // Modals & Drawers
@@ -1002,6 +1051,64 @@ export default function App() {
         onInjectTestPacket={handleInjectMockPacket}
         operatorEmail={operatorSession?.email || 'operator@voltbms.io'}
       />
+
+      {/* Interactive Demo Tour HUD Banner for New Visitors */}
+      {isDemoTourActive && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-xl px-4 pointer-events-auto">
+          <div className="rounded-2xl bg-[#090d16]/95 backdrop-blur-2xl border border-cyan-400/40 p-4 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9),0_0_30px_rgba(6,182,212,0.25)] flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-400/30">
+                  <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+                  DEMO TOUR • STEP {tourStep + 1} OF {TOUR_STEPS.length}
+                </span>
+                <span className="text-xs font-mono font-semibold text-white">
+                  {TOUR_STEPS[tourStep].title}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDemoTourActive(false);
+                  sessionStorage.removeItem('volt_demo_tour_active');
+                }}
+                className="text-slate-400 hover:text-white transition text-xs font-mono px-2 py-0.5 rounded-md hover:bg-white/10"
+                title="Dismiss Tour"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-snug">
+              {TOUR_STEPS[tourStep].desc}
+            </p>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/[0.08] text-xs">
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 underline"
+              >
+                Ready to save data? Register ID →
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (tourStep + 1) % TOUR_STEPS.length;
+                    setTourStep(next);
+                    setActiveTab(TOUR_STEPS[next].tab);
+                  }}
+                  className="py-1 px-3 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-orbitron font-bold text-[10px] tracking-wider transition flex items-center gap-1.5 shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                >
+                  <span>{tourStep === TOUR_STEPS.length - 1 ? 'RESTART TOUR' : 'NEXT FEATURE'}</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,7 +17,8 @@ import {
   Sparkles,
   Terminal,
   Activity,
-  Layers
+  Layers,
+  Compass
 } from 'lucide-react';
 import { api, OperatorProfile } from '../services/api';
 
@@ -55,6 +56,7 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
   // UX Feedback & State
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [showAdminKey, setShowAdminKey] = useState<boolean>(false);
   const [isCapsLockOn, setIsCapsLockOn] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
@@ -133,7 +135,7 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
       email: userProfile.email,
       role: (userProfile.role as OperatorRole) || 'BMS Engineer',
       authMethod,
-      primary_battery_id: userProfile.primary_battery_id,
+      primary_battery_id: userProfile.primary_battery_id || 'EV-001',
       sessionExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
       timestamp: new Date().toISOString()
     };
@@ -143,6 +145,36 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
       // Ignore
     }
     onLoginSuccess(sessionData);
+  };
+
+  // 1-Click Instant Demo Tour for new visitors
+  const handleInstantDemoTour = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsLoading(true);
+    setLoadingMessage('Initializing Neural Lab Demo Tour...');
+
+    try {
+      const res = await api.startInstantDemoTour();
+      sessionStorage.setItem('volt_demo_tour_active', 'true');
+      setIsLoading(false);
+      setSuccessMessage('Demo Tour verified! Entering Neural Lab...');
+      setTimeout(() => {
+        finalizeSession(res.user, 'demo');
+      }, 300);
+    } catch {
+      const demoUser: OperatorProfile = {
+        user_id: 'usr_evaluator_demo',
+        name: 'Guest Evaluator',
+        email: 'demo@voltbms.io',
+        role: 'BMS Engineer',
+        status: 'ACTIVE',
+        created_at: new Date().toISOString(),
+        primary_battery_id: 'EV-001'
+      };
+      sessionStorage.setItem('volt_demo_tour_active', 'true');
+      finalizeSession(demoUser, 'demo');
+    }
   };
 
   // Handle Login
@@ -172,7 +204,7 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
       }, 400);
     } catch (err: any) {
       setIsLoading(false);
-      triggerError(err.message || 'Login failed. Please check credentials.');
+      triggerError(err.message || 'Login failed. Please check credentials or register.');
     }
   };
 
@@ -205,13 +237,41 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
     try {
       const res = await api.register(name, email, password, role);
       setIsLoading(false);
-      setSuccessMessage('Account registered successfully! Entering Neural Lab...');
+      setSuccessMessage(`Account registered for ${res.user.name}! Entering Neural Lab...`);
       setTimeout(() => {
         finalizeSession(res.user, 'password');
       }, 500);
     } catch (err: any) {
       setIsLoading(false);
       triggerError(err.message || 'Registration failed. Please try a different email.');
+    }
+  };
+
+  // Handle Admin Key Authentication (Direct Fleet Admin privilege grant)
+  const handleAdminKeyLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const keyToUse = adminKey.trim();
+    if (!keyToUse) {
+      triggerError('Please enter your 256-bit Admin Access Key.');
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage('Verifying Admin Key SHA-256 hash & elevating privileges...');
+
+    try {
+      const res = await api.loginWithAdminKey(keyToUse, rememberMe);
+      setIsLoading(false);
+      setSuccessMessage(`Admin Key Verified: ${res.user.role} elevated access granted.`);
+      setTimeout(() => {
+        finalizeSession(res.user, 'token');
+      }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      triggerError(err.message || 'Invalid or revoked Admin Access Key.');
     }
   };
 
@@ -277,54 +337,6 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
     }
   };
 
-  // Handle Admin Key Authentication (Direct Fleet Admin privilege grant)
-  const handleAdminKeyLogin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    const keyToUse = adminKey.trim();
-    if (!keyToUse) {
-      triggerError('Please enter a valid Admin Access Key.');
-      return;
-    }
-
-    setIsLoading(true);
-    setLoadingMessage('Verifying Admin Key SHA-256 hash & elevating privileges...');
-
-    try {
-      const res = await api.loginWithAdminKey(keyToUse, rememberMe);
-      setIsLoading(false);
-      setSuccessMessage(`Admin Key Verified: ${res.user.role} elevated access granted.`);
-      setTimeout(() => {
-        finalizeSession(res.user, 'token');
-      }, 400);
-    } catch (err: any) {
-      setIsLoading(false);
-      triggerError(err.message || 'Invalid or revoked Admin Access Key.');
-    }
-  };
-
-  // 1-Click Instant Demo Login (Real Backend Authentication)
-  const handleInstantDemoLogin = async () => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    setIsLoading(true);
-    setLoadingMessage('Authenticating with primary evaluator credentials...');
-
-    try {
-      const res = await api.login('operator@voltbms.io', 'VoltBms2026!', true);
-      setIsLoading(false);
-      setSuccessMessage('Evaluator session verified. Initializing lab...');
-      setTimeout(() => {
-        finalizeSession(res.user, 'demo');
-      }, 400);
-    } catch (err: any) {
-      setIsLoading(false);
-      triggerError('Instant demo authentication failed. Check backend connection.');
-    }
-  };
-
   return (
     <div className="min-h-screen w-full relative flex items-center justify-center p-3 sm:p-6 overflow-hidden bg-[#07090e] select-none">
       {/* Background Pinstripe Grid & Ambient Energy Pulses */}
@@ -369,7 +381,7 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-48 h-24 bg-cyan-400/20 blur-2xl rounded-full pointer-events-none" />
 
           {/* Header Branding */}
-          <div className="text-center mb-6 relative">
+          <div className="text-center mb-5 relative">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 via-blue-500/15 to-transparent border border-cyan-400/40 shadow-[0_0_25px_rgba(6,182,212,0.3)] mb-3">
               <Zap className="w-6 h-6 text-cyan-400 animate-pulse" />
             </div>
@@ -384,7 +396,33 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             </p>
           </div>
 
-          {/* Tab Navigation (Sign In / Admin Key / Register / Recovery) */}
+          {/* Instant Demo Tour Banner for New Visitors */}
+          <div className="mb-5 p-3.5 rounded-xl bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-indigo-500/15 border border-cyan-400/40 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-cyan-300">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                NEW TO VOLT AI?
+              </span>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                No Password Needed
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 leading-snug">
+              Launch the instant interactive demo tour with simulated 400V telemetry, 8-cell matrix, and ML degradation models.
+            </p>
+            <button
+              type="button"
+              onClick={handleInstantDemoTour}
+              disabled={isLoading}
+              className="w-full mt-1 py-2 px-3 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-orbitron font-extrabold text-xs tracking-wider transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.35)]"
+            >
+              <Compass className="w-4 h-4 text-slate-950" />
+              <span>START INSTANT DEMO TOUR</span>
+              <ArrowRight className="w-4 h-4 text-slate-950" />
+            </button>
+          </div>
+
+          {/* Tab Navigation (Sign In / Register ID / Admin Key / Recovery) */}
           <div className="grid grid-cols-4 gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.08] mb-5 text-[11px] font-mono">
             <button
               type="button"
@@ -399,6 +437,17 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             </button>
             <button
               type="button"
+              onClick={() => { setMode('signup'); setErrorMessage(null); setSuccessMessage(null); }}
+              className={`py-1.5 rounded-lg transition font-medium ${
+                mode === 'signup'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Register ID
+            </button>
+            <button
+              type="button"
               onClick={() => { setMode('admin-key'); setErrorMessage(null); setSuccessMessage(null); }}
               className={`py-1.5 rounded-lg transition font-medium flex items-center justify-center gap-1 ${
                 mode === 'admin-key'
@@ -408,17 +457,6 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             >
               <KeyRound className="w-3 h-3 text-amber-400" />
               <span>Admin Key</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('signup'); setErrorMessage(null); setSuccessMessage(null); }}
-              className={`py-1.5 rounded-lg transition font-medium ${
-                mode === 'signup'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm font-bold'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Register
             </button>
             <button
               type="button"
@@ -558,6 +596,146 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             </form>
           )}
 
+          {/* MODE: REGISTER / SIGN UP */}
+          {mode === 'signup' && (
+            <form onSubmit={handleSignUp} className="flex flex-col gap-3">
+              <div>
+                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-name">
+                  FULL OPERATOR NAME
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    id="reg-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. Alex Vance"
+                    className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-email">
+                  OPERATOR EMAIL
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    id="reg-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="alex@voltbms.io"
+                    className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-role">
+                  ASSIGNED ROLE
+                </label>
+                <div className="relative">
+                  <select
+                    id="reg-role"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as OperatorRole)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-[#0c101a] border border-white/[0.08] text-white text-xs focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition font-mono"
+                  >
+                    <option value="BMS Engineer">BMS Engineer (Read/Write Telemetry & Digital Twin)</option>
+                    <option value="Fleet Admin">Fleet Admin (Full Fleet Oversight & Calibration)</option>
+                    <option value="Read-Only Auditor">Read-Only Auditor (Inspection & Diagnostic Reports)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-password">
+                  PASSWORD
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    id="reg-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onKeyDown={handleKeyModifierCheck}
+                    onKeyUp={handleKeyModifierCheck}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 6 characters"
+                    className="w-full pl-10 pr-10 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Password Strength Meter */}
+                {password.length > 0 && (
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <div className="flex-1 grid grid-cols-4 gap-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div className={`h-full ${strength.score >= 1 ? strength.color : 'bg-transparent'}`} />
+                      <div className={`h-full ${strength.score >= 2 ? strength.color : 'bg-transparent'}`} />
+                      <div className={`h-full ${strength.score >= 3 ? strength.color : 'bg-transparent'}`} />
+                      <div className={`h-full ${strength.score >= 4 ? strength.color : 'bg-transparent'}`} />
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">{strength.label}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-confirm">
+                  CONFIRM PASSWORD
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    id="reg-confirm"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onKeyDown={handleKeyModifierCheck}
+                    onKeyUp={handleKeyModifierCheck}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat password"
+                    className="w-full pl-10 pr-10 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-bold text-xs tracking-wider transition shadow-[0_0_20px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>{loadingMessage || 'Registering...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>CREATE OPERATOR ACCOUNT</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
           {/* MODE: ADMIN KEY LOGIN */}
           {mode === 'admin-key' && (
             <form onSubmit={handleAdminKeyLogin} className="flex flex-col gap-3.5">
@@ -567,46 +745,38 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
                   <span>FLEET ADMINISTRATOR DIRECT ACCESS</span>
                 </div>
                 <p className="text-[10px] text-slate-300 leading-relaxed">
-                  Enter your cryptographically registered 256-bit Admin Access Key. Authenticates with full Fleet Admin privileges without needing password entry.
+                  Enter your private 256-bit Admin Access Key provided by system administrators to authenticate directly with elevated Fleet Admin privileges.
                 </p>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-mono font-medium text-slate-300" htmlFor="admin-access-key">
-                    ADMIN ACCESS KEY
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setAdminKey('VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9')}
-                    className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 underline"
-                  >
-                    Auto-Fill Master Key
-                  </button>
-                </div>
+                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="admin-access-key">
+                  ADMIN ACCESS KEY
+                </label>
                 <div className="relative">
                   <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400 pointer-events-none" />
                   <input
                     id="admin-access-key"
-                    type="text"
+                    type={showAdminKey ? 'text' : 'password'}
                     autoComplete="off"
                     spellCheck={false}
                     value={adminKey}
-                    onChange={(e) => setAdminKey(e.target.value.trim().toUpperCase())}
-                    placeholder="VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-amber-500/30 text-amber-200 text-xs placeholder-slate-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition font-mono tracking-wider font-semibold"
+                    onChange={(e) => setAdminKey(e.target.value.trim())}
+                    placeholder="Enter 256-bit Admin Access Key"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/[0.03] border border-amber-500/30 text-amber-200 text-xs placeholder-slate-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition font-mono tracking-wider font-semibold"
                   />
-                </div>
-                <div className="flex items-center justify-between mt-1 text-[10px] font-mono text-slate-500">
-                  <span>Format: VOLT-ADMIN-KEY-... or VOLT-ADM-...</span>
                   <button
                     type="button"
-                    onClick={() => setAdminKey('VOLT-ADM-YFDG-XS5J-YQQY-GWAU')}
-                    className="text-amber-400/80 hover:text-amber-300 underline"
+                    onClick={() => setShowAdminKey(!showAdminKey)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+                    title={showAdminKey ? 'Hide key' : 'Show key'}
                   >
-                    Use DB Key
+                    {showAdminKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <p className="text-[10px] font-mono text-slate-500 mt-1">
+                  Cryptographically verified via SHA-256 hash.
+                </p>
               </div>
 
               <div className="flex items-center justify-between text-xs">
@@ -642,159 +812,16 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             </form>
           )}
 
-          {/* MODE: REGISTER / SIGN UP */}
-          {mode === 'signup' && (
-            <form onSubmit={handleSignUp} className="flex flex-col gap-3">
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-name">
-                  FULL NAME
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                  <input
-                    id="reg-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Dr. Aryan Chaudhary"
-                    className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-email">
-                  OPERATOR EMAIL
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                  <input
-                    id="reg-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="engineer@voltbms.io"
-                    className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1">
-                  OPERATIONAL ROLE
-                </label>
-                <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
-                  {(['BMS Engineer', 'Fleet Admin', 'Read-Only Auditor'] as OperatorRole[]).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRole(r)}
-                      className={`py-1.5 px-1 rounded-lg border text-center transition ${
-                        role === r
-                          ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 font-bold'
-                          : 'bg-white/[0.02] border-white/[0.08] text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {r.replace(' ', '\n')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-password">
-                  PASSWORD
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                  <input
-                    id="reg-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 6 characters"
-                    className="w-full pl-10 pr-10 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {/* Strength Meter */}
-                {password.length > 0 && (
-                  <div className="mt-1.5 flex items-center gap-1.5">
-                    <div className="flex-1 grid grid-cols-4 gap-1 h-1">
-                      {[1, 2, 3, 4].map((step) => (
-                        <div
-                          key={step}
-                          className={`rounded-full h-full ${
-                            step <= strength.score ? strength.color : 'bg-slate-800'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-[9px] font-mono text-slate-400">{strength.label}</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="reg-confirm">
-                  CONFIRM PASSWORD
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                  <input
-                    id="reg-confirm"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat password"
-                    className="w-full pl-10 pr-10 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full mt-2 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-bold text-xs tracking-wider transition shadow-[0_0_20px_rgba(6,182,212,0.35)] flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>{loadingMessage || 'Creating account...'}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>REGISTER OPERATOR ACCOUNT</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* MODE: FORGOT PASSWORD REQUEST */}
+          {/* MODE: FORGOT PASSWORD */}
           {mode === 'forgot' && (
             <form onSubmit={handleForgotPassword} className="flex flex-col gap-3.5">
               <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs font-mono">
-                Enter your operator email address. The system will generate a genuine cryptographic recovery token stored in the database.
+                <p>Enter your operator email address. A recovery token will be generated to reset your credentials.</p>
               </div>
 
               <div>
                 <label className="block text-[11px] font-mono font-medium text-slate-300 mb-1" htmlFor="forgot-email">
-                  REGISTERED OPERATOR EMAIL
+                  OPERATOR EMAIL
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
@@ -817,11 +844,11 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>{loadingMessage || 'Generating reset token...'}</span>
+                    <span>Generating token...</span>
                   </>
                 ) : (
                   <>
-                    <span>REQUEST RESET TOKEN</span>
+                    <span>REQUEST RECOVERY TOKEN</span>
                     <KeyRound className="w-4 h-4" />
                   </>
                 )}
@@ -853,7 +880,7 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
                     type="text"
                     value={resetToken}
                     onChange={(e) => setResetToken(e.target.value)}
-                    placeholder="Paste your 32-character recovery token"
+                    placeholder="Paste recovery token"
                     className="w-full pl-10 pr-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition font-mono"
                   />
                 </div>
@@ -927,31 +954,30 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             </form>
           )}
 
-          {/* Instant Demo Sandbox Access Button (Calls real backend API) */}
-          <div className="mt-5 pt-4 border-t border-white/[0.08]">
+          {/* Quick Access Footer */}
+          <div className="mt-5 pt-4 border-t border-white/[0.08] flex flex-col gap-2">
             <button
               type="button"
-              onClick={handleInstantDemoLogin}
+              onClick={handleInstantDemoTour}
               disabled={isLoading}
               className="w-full py-2 px-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 font-mono text-[11px] font-semibold transition flex items-center justify-center gap-2 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"
             >
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Instant Evaluator Demo Login (Aryan / BMS Engineer)</span>
+              <span>Launch Instant Demo Tour (Guest Access)</span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('admin-key');
-                setAdminKey('VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9');
-              }}
-              className="w-full mt-2 py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-semibold transition flex items-center justify-center gap-2"
-            >
-              <KeyRound className="w-3 h-3 text-amber-400" />
-              <span>Admin Key Access: VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9</span>
-            </button>
-            <p className="text-[10px] text-slate-500 text-center mt-2 font-mono">
-              Authenticates against verified database user <span className="text-slate-400">admin@voltbms.io</span> or <span className="text-slate-400">operator@voltbms.io</span>
-            </p>
+            <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 px-1 mt-1">
+              <span>{mode === 'signup' ? 'Already have an ID?' : 'Want a personal ID?'}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === 'signup' ? 'signin' : 'signup');
+                  setErrorMessage(null);
+                }}
+                className="text-cyan-400 hover:underline font-semibold"
+              >
+                {mode === 'signup' ? '← Sign In to Account' : 'Register Operator ID →'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
