@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Layers,
@@ -19,7 +19,13 @@ import {
   RefreshCw,
   Crosshair,
   ShieldAlert,
-  AlertCircle
+  AlertCircle,
+  Play,
+  Pause,
+  Gauge,
+  Radio,
+  Sliders,
+  Compass
 } from 'lucide-react';
 import { BatteryState, CellTelemetry, AlertItem } from '../types';
 import {
@@ -29,6 +35,7 @@ import {
   TOPOLOGY_PRESETS,
   TopologyDetails
 } from '../components/BatteryPack3D';
+import { clientSimulator } from '../services/clientSimulator';
 
 interface BatteryPack3DViewProps {
   data: BatteryState;
@@ -37,6 +44,8 @@ interface BatteryPack3DViewProps {
   alerts?: AlertItem[];
   isLiveBackend?: boolean;
   activeBatteryId?: string;
+  activeScenario?: string;
+  onScenarioChange?: (scenario: string) => void;
 }
 
 // ========================================================
@@ -340,12 +349,14 @@ const DefectiveCellGraphic: React.FC<DefectiveCellGraphicProps> = ({
 // MAIN VIEW: 3D BATTERY SYSTEM DIGITAL TWIN (DECLUTTERED)
 // ========================================================
 export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
-  data,
+  data: externalData,
   selectedCell,
   onSelectCell,
   alerts = [],
   isLiveBackend = true,
-  activeBatteryId = 'EV-001'
+  activeBatteryId = 'EV-001',
+  activeScenario = 'NORMAL',
+  onScenarioChange
 }) => {
   const [activeTopology, setActiveTopology] = useState<PackTopology>('8S1P');
   const [internalSelectedCell, setInternalSelectedCell] = useState<CellTelemetry | null>(selectedCell || null);
@@ -353,9 +364,51 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
   const [visualizationMode, setVisualizationMode] = useState<VisualizationMode>('NORMAL');
   const [explodedProgress, setExplodedProgress] = useState<number>(0);
 
-  // Defect Simulation Toggle so user can test and demonstrate the problem cell graphic at any time
-  const [demoDefectActive, setDemoDefectActive] = useState<boolean>(false);
+  // Live 1Hz Real-Time Electrochemical Physics Engine State
+  const [currentScenario, setCurrentScenario] = useState<string>(activeScenario || 'NORMAL');
+  const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
+  const [tickCount, setTickCount] = useState<number>(0);
+  const [localData, setLocalData] = useState<BatteryState>(externalData);
 
+  // Sync if external data changes (e.g. from real BLE or hardware stream)
+  useEffect(() => {
+    if (externalData) {
+      setLocalData(externalData);
+    }
+  }, [externalData]);
+
+  // Synchronize scenario prop if updated from top navigation bar
+  useEffect(() => {
+    if (activeScenario && activeScenario !== currentScenario) {
+      setCurrentScenario(activeScenario);
+    }
+  }, [activeScenario]);
+
+  // 1 Hz Autonomous High-Fidelity Physics Clock
+  // Drives continuous real-life physical fluctuations (voltages, current, temperature, SOC)
+  useEffect(() => {
+    if (!isLiveStreaming) return;
+    const interval = setInterval(() => {
+      const nextState = clientSimulator.step(1.0);
+      setLocalData(nextState);
+      setTickCount((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLiveStreaming, currentScenario]);
+
+  // Handle Scenario Selection directly from 3D Twin View
+  const handleSelectScenario = (sc: string) => {
+    setCurrentScenario(sc);
+    clientSimulator.setScenario(sc);
+    const immediateState = clientSimulator.step(0.1);
+    setLocalData(immediateState);
+    if (onScenarioChange) {
+      onScenarioChange(sc);
+    }
+  };
+
+  const data = localData || externalData;
   const pack = data.pack || ({} as any);
   const cells = data.cells || [];
   const ai = data.ai || ({} as any);
@@ -377,38 +430,44 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
   }, [cells]);
 
   // Real-time Defective Cell Detection:
-  // Detect if any cell in the pack is overheating (>=34°C) or experiencing voltage imbalance (>45mV) or flagged in RCA
-  const realProblemCell = useMemo(() => {
+  // Dynamically scans cells for highest thermal runaway risk, voltage imbalance, or AI RCA flagging
+  const problemCellInfo = useMemo(() => {
     // 1. Check if RCA specifically identified an affected cell
     if (rca.affected_cell) {
       const found = cells.find((c) => c.cell_id === rca.affected_cell);
       if (found) {
         return {
           cellId: found.cell_id,
-          reason: rca.probable_cause || 'Identified by AI Diagnostic Engine',
+          reason: rca.probable_cause || 'AI Diagnostic: Thermal & Internal Resistance Stress',
           cell: found
         };
       }
     }
 
-    // 2. Scan cells for temperature >= 34°C
-    const hotCell = cells.find((c) => (c.temp_c ?? (c as any).temperature ?? 25) >= 34);
-    if (hotCell) {
+    // 2. Scan cells for temperature >= 34°C (find highest)
+    const hotCells = [...cells].filter((c) => (c.temp_c ?? (c as any).temperature ?? 25) >= 34);
+    if (hotCells.length > 0) {
+      hotCells.sort((a, b) => (b.temp_c ?? 25) - (a.temp_c ?? 25));
+      const hotCell = hotCells[0];
       return {
         cellId: hotCell.cell_id,
-        reason: `Overheating: ${hotCell.temp_c?.toFixed(1) || '35.2'}°C exceeds safe threshold`,
+        reason: `Overheating: ${hotCell.temp_c?.toFixed(1) || '48.0'}°C exceeds 34°C safe threshold`,
         cell: hotCell
       };
     }
 
-    // 3. Scan cells for voltage delta > 45 mV from mean
-    const imbalancedCell = cells.find(
-      (c) => Math.abs((c.voltage ?? 3.28) - meanVoltage) > 0.045
+    // 3. Scan cells for voltage delta > 40 mV from mean
+    const imbalancedCells = [...cells].filter(
+      (c) => Math.abs((c.voltage ?? 3.28) - meanVoltage) > 0.040
     );
-    if (imbalancedCell) {
+    if (imbalancedCells.length > 0) {
+      imbalancedCells.sort(
+        (a, b) => Math.abs((b.voltage ?? 3.28) - meanVoltage) - Math.abs((a.voltage ?? 3.28) - meanVoltage)
+      );
+      const imbalancedCell = imbalancedCells[0];
       return {
         cellId: imbalancedCell.cell_id,
-        reason: `Voltage Imbalance: ${(Math.abs((imbalancedCell.voltage ?? 3.28) - meanVoltage) * 1000).toFixed(0)} mV delta`,
+        reason: `Voltage Sag Imbalance: ${(Math.abs((imbalancedCell.voltage ?? 3.28) - meanVoltage) * 1000).toFixed(0)} mV delta below pack mean`,
         cell: imbalancedCell
       };
     }
@@ -416,40 +475,20 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
     return null;
   }, [cells, rca, meanVoltage]);
 
-  // Effective problem cell (either real anomaly or user-triggered demo defect on Cell 5)
-  const problemCellInfo = useMemo(() => {
-    if (demoDefectActive) {
-      return {
-        cellId: 5,
-        reason: 'Overheating Hotspot (43.8°C) & Voltage Sag (-92 mV)',
-        isDemo: true
-      };
-    }
-    if (realProblemCell) {
-      return {
-        cellId: realProblemCell.cellId,
-        reason: realProblemCell.reason,
-        isDemo: false
-      };
-    }
-    return null;
-  }, [demoDefectActive, realProblemCell]);
-
   // Target highlighted cell in 3D:
-  // Focus the defective cell by default, or focus user's manually clicked cell
+  // Automatically focus defective cell, or user's clicked cell
   const effectiveHighlightedCellId = internalSelectedCell?.cell_id ?? problemCellInfo?.cellId ?? null;
   const effectiveHighlightReason = internalSelectedCell
     ? `Inspecting Cell C${internalSelectedCell.cell_id}`
     : problemCellInfo?.reason;
 
-  // Topology-mapped cell list based on selected architecture
+  // Topology-mapped cell list based on selected architecture and live telemetry
   const displayCells = useMemo(() => {
     const total = topoInfo.totalCells;
     const list: CellTelemetry[] = [];
     for (let i = 0; i < total; i++) {
       const cellId = i + 1;
-      const sourceIndex = i % (cells.length || 1);
-      const liveCell = cells[sourceIndex];
+      const liveCell = cells.find((c) => c.cell_id === cellId) || cells[i % (cells.length || 1)];
       const fallbackCell: CellTelemetry = liveCell || {
         cell_id: cellId,
         voltage: 3.28 + (i % 2 === 0 ? 0.005 : -0.005),
@@ -460,27 +499,22 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
         health_status: 'NORMAL'
       };
 
-      // If this is the demo defect cell (Cell 5) and demo is active, inject high temp & voltage drop
-      const isThisDemoCell = demoDefectActive && cellId === 5;
-      const effectiveTemp = isThisDemoCell ? 43.8 : fallbackCell.temp_c ?? 26.0;
-      const effectiveVolt = isThisDemoCell ? 3.190 : fallbackCell.voltage ?? 3.28;
-      const effectiveRes = isThisDemoCell ? 48.5 : fallbackCell.internal_resistance_mohm ?? 32.0;
+      const isDefective = problemCellInfo && problemCellInfo.cellId === cellId;
 
       list.push({
         ...fallbackCell,
         cell_id: cellId,
-        voltage: effectiveVolt,
-        temp_c: effectiveTemp,
-        internal_resistance_mohm: effectiveRes,
-        soc: isThisDemoCell ? 52.0 : fallbackCell.soc ?? socVal,
-        health_status: isThisDemoCell ? 'CRITICAL' : fallbackCell.health_status ?? 'NORMAL'
+        voltage: fallbackCell.voltage ?? 3.28,
+        temp_c: fallbackCell.temp_c ?? 26.0,
+        internal_resistance_mohm: fallbackCell.internal_resistance_mohm ?? 32.0,
+        soc: fallbackCell.soc ?? socVal,
+        health_status: isDefective ? 'CRITICAL' : fallbackCell.health_status ?? 'NORMAL'
       });
     }
     return list;
-  }, [topoInfo, cells, packCurrent, socVal, demoDefectActive]);
+  }, [topoInfo, cells, packCurrent, socVal, problemCellInfo]);
 
   // Cell currently chosen for the 2D graphic inspector
-  // (Either user selected cell, or problem cell, or default Cell 1)
   const cellForGraphic = useMemo(() => {
     if (internalSelectedCell) {
       const found = displayCells.find((c) => c.cell_id === internalSelectedCell.cell_id);
@@ -498,7 +532,7 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
     if (problemCellInfo && cellForGraphic.cell_id === problemCellInfo.cellId) return true;
     return (
       (cellForGraphic.temp_c ?? 25) >= 34 ||
-      Math.abs((cellForGraphic.voltage ?? 3.28) - meanVoltage) > 0.045
+      Math.abs((cellForGraphic.voltage ?? 3.28) - meanVoltage) > 0.040
     );
   }, [cellForGraphic, problemCellInfo, meanVoltage]);
 
@@ -583,32 +617,156 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
               </button>
             )}
 
-            {/* Defect Simulation Toggle */}
             <button
-              onClick={() => setDemoDefectActive(!demoDefectActive)}
-              className={`px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all flex items-center gap-1.5 border ${
-                demoDefectActive
-                  ? 'bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
-              }`}
-              title="Click to test or remove simulated defective cell"
+              onClick={() => handleSelectScenario('NORMAL')}
+              className="px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all flex items-center gap-1.5 border bg-white/5 hover:bg-white/10 text-slate-300 border-white/10"
+              title="Reset simulation to healthy balanced state"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>{demoDefectActive ? 'Cancel Simulation' : '🧪 Test Defective Cell Demo'}</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Clear Anomaly</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* ======================================================== */}
-      {/* 2. DECLUTTERED 2-COLUMN VIEWPORT: 3D TWIN + GRAPHIC CARD */}
+      {/* 2. REAL-LIFE VEHICLE OPERATIONAL SIMULATOR CONTROL BAR   */}
+      {/* Live 1Hz physics simulation with real-world EV scenarios */}
+      {/* ======================================================== */}
+      <div className="volt-glass-card rounded-2xl p-4 border border-white/[0.08] shadow-2xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <Radio className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-orbitron font-extrabold text-xs uppercase tracking-wider text-white">
+                  REAL-LIFE VEHICLE OPERATIONAL SIMULATOR
+                </h3>
+                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9.5px] font-mono font-bold text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>1.0 Hz LIVE TELEMETRY #{tickCount}</span>
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-slate-400">
+                Ground-truth electrochemical simulation • Micro-fluctuations, Joule heating & dynamic impedance
+              </p>
+            </div>
+          </div>
+
+          {/* Play / Pause & Reset Simulator Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsLiveStreaming(!isLiveStreaming)}
+              className={`px-3 py-1.5 rounded-xl font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                isLiveStreaming
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30'
+              }`}
+            >
+              {isLiveStreaming ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              <span>{isLiveStreaming ? 'Live Stream Active' : 'Stream Paused'}</span>
+            </button>
+
+            <button
+              onClick={() => handleSelectScenario('NORMAL')}
+              className="px-3 py-1.5 rounded-xl font-mono text-xs font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5 transition-all"
+              title="Reset all cells to balanced cruise"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Normal</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Real-Life Scenarios Selector */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 pt-1">
+          {[
+            {
+              id: 'NORMAL',
+              badge: '🟢 CRUISE',
+              name: 'Normal Cruise',
+              current: '14.5A Load',
+              temp: '26.2°C Cool',
+              desc: 'Balanced cells, nominal 25.6V LFP'
+            },
+            {
+              id: 'HIGH C-RATE',
+              badge: '⚡ ACCEL',
+              name: 'High Acceleration',
+              current: '68.0A Load',
+              temp: '32.8°C Rise',
+              desc: 'High discharge load, voltage sag ~24V'
+            },
+            {
+              id: 'FAST CHARGING',
+              badge: '🔌 CHARGE',
+              name: '50 kW Fast Charge',
+              current: '-50.0A Charge',
+              temp: 'Rising Volt',
+              desc: 'High-power DC charging, SOC rises'
+            },
+            {
+              id: 'HIGH TEMPERATURE',
+              badge: '🔥 HOTSPOT',
+              name: 'Thermal Hotspot',
+              current: 'Cell 4 Fault',
+              temp: '52°C Warning',
+              desc: 'Cell 4 thermal anomaly with 3D beacon'
+            },
+            {
+              id: 'CELL IMBALANCE',
+              badge: '⚠️ IMBALANCE',
+              name: 'Cell Imbalance',
+              current: 'Cell 4 Sag',
+              temp: '-115 mV ΔV',
+              desc: 'Voltage divergence crosses 40mV threshold'
+            }
+          ].map((sc) => {
+            const isSelected = currentScenario === sc.id;
+            return (
+              <button
+                key={sc.id}
+                onClick={() => handleSelectScenario(sc.id)}
+                className={`p-2.5 rounded-xl border text-left transition-all relative overflow-hidden ${
+                  isSelected
+                    ? 'bg-gradient-to-br from-cyan-950/80 to-[#071520] border-cyan-400/80 shadow-[0_0_18px_rgba(6,182,212,0.35)] ring-1 ring-cyan-400'
+                    : 'bg-[#060a14]/60 hover:bg-white/[0.06] border-white/[0.08] text-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-mono font-bold text-cyan-400">
+                    {sc.badge}
+                  </span>
+                  {isSelected && (
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  )}
+                </div>
+                <div className="font-orbitron font-bold text-xs text-white mb-0.5">
+                  {sc.name}
+                </div>
+                <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                  <span>{sc.current}</span>
+                  <strong className={sc.id.includes('HOT') ? 'text-rose-400' : 'text-slate-200'}>
+                    {sc.temp}
+                  </strong>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 3. DECLUTTERED 2-COLUMN VIEWPORT: 3D TWIN + GRAPHIC CARD */}
       {/* ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* ---------------------------------------------------- */}
         {/* LEFT COLUMN (7-8 COLS): 3D MODEL & EASY VIEW CONTROLS */}
         {/* ---------------------------------------------------- */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col space-y-3">
-          {/* Friendly View Buttons (Replaces 7 cryptic engineering modes) */}
+          {/* Friendly View Buttons & Orbit Helpers */}
           <div className="p-2.5 rounded-2xl volt-glass-card border border-white/[0.08] flex flex-wrap items-center justify-between gap-2 shadow-xl">
             <div className="flex flex-wrap items-center gap-1.5">
               {[
@@ -658,10 +816,12 @@ export const BatteryPack3DView: React.FC<BatteryPack3DViewProps> = ({
             </div>
 
             {/* Quick Helper Text */}
-            <span className="text-[10.5px] font-mono text-slate-400 hidden sm:inline-flex items-center gap-1">
-              <Info className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Drag to rotate 3D pack • Click any cell to inspect</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] font-mono text-slate-400 hidden sm:inline-flex items-center gap-1">
+                <Compass className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Drag to Orbit • Scroll to Zoom</span>
+              </span>
+            </div>
           </div>
 
           {/* 3D WebGL Canvas Container */}

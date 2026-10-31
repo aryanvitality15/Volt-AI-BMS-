@@ -152,6 +152,7 @@ export function getVoltageColor(voltage: number, avgVoltage: number = 3.28): THR
 interface CameraControllerProps {
   viewPreset: CameraViewPreset | null;
   onPresetComplete: () => void;
+  selectedCellId: number | null;
   targetPosition: [number, number, number] | null;
   controlsRef: React.RefObject<any>;
 }
@@ -159,17 +160,35 @@ interface CameraControllerProps {
 function CameraController({
   viewPreset,
   onPresetComplete,
+  selectedCellId,
   targetPosition,
   controlsRef
 }: CameraControllerProps) {
   const { camera } = useThree();
   const isTransitioningRef = useRef<boolean>(false);
+  const transitionEndTimeRef = useRef<number>(0);
+  const prevCellIdRef = useRef<number | null>(null);
   const targetCamPosRef = useRef<THREE.Vector3>(new THREE.Vector3(3.8, 3.2, 4.4));
   const targetLookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
 
+  // When user touches or drags canvas with mouse, IMMEDIATELY cancel any transition
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const handleStart = () => {
+      isTransitioningRef.current = false;
+    };
+    controls.addEventListener('start', handleStart);
+    return () => {
+      controls.removeEventListener('start', handleStart);
+    };
+  }, [controlsRef]);
+
+  // View preset transitions (ISOMETRIC, TOP, FRONT, SIDE)
   useEffect(() => {
     if (viewPreset) {
       isTransitioningRef.current = true;
+      transitionEndTimeRef.current = performance.now() + 850;
       if (viewPreset === 'ISOMETRIC') {
         targetCamPosRef.current.set(3.8, 3.2, 4.4);
         targetLookAtRef.current.set(0, 0, 0);
@@ -186,30 +205,37 @@ function CameraController({
     }
   }, [viewPreset]);
 
+  // Focus transition on cell ONLY when selectedCellId primitive changes
   useEffect(() => {
-    if (targetPosition) {
+    if (selectedCellId !== null && selectedCellId !== prevCellIdRef.current && targetPosition) {
+      prevCellIdRef.current = selectedCellId;
       isTransitioningRef.current = true;
+      transitionEndTimeRef.current = performance.now() + 850;
       targetLookAtRef.current.set(targetPosition[0], 0.25, targetPosition[2]);
       targetCamPosRef.current.set(
         targetPosition[0] + 2.0,
         2.4,
         targetPosition[2] + 2.6
       );
+    } else if (selectedCellId === null) {
+      prevCellIdRef.current = null;
     }
-  }, [targetPosition]);
+  }, [selectedCellId, targetPosition]);
 
   useFrame((_, delta) => {
     if (isTransitioningRef.current) {
-      camera.position.lerp(targetCamPosRef.current, Math.min(delta * 5.0, 0.2));
-
-      if (controlsRef.current) {
-        controlsRef.current.target.lerp(targetLookAtRef.current, Math.min(delta * 5.0, 0.2));
-        controlsRef.current.update();
-      }
-
-      if (camera.position.distanceTo(targetCamPosRef.current) < 0.04) {
+      const now = performance.now();
+      if (now >= transitionEndTimeRef.current || camera.position.distanceTo(targetCamPosRef.current) < 0.04) {
         isTransitioningRef.current = false;
         onPresetComplete();
+        return;
+      }
+
+      camera.position.lerp(targetCamPosRef.current, Math.min(delta * 4.5, 0.25));
+
+      if (controlsRef.current) {
+        controlsRef.current.target.lerp(targetLookAtRef.current, Math.min(delta * 4.5, 0.25));
+        controlsRef.current.update();
       }
     }
   });
@@ -1088,6 +1114,10 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
 
   const handleResetCamera = () => {
     setViewPreset('ISOMETRIC');
+    if (controlsRef.current) {
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
+    }
     if (onCellSelect) onCellSelect(null);
     if (onModuleSelect) onModuleSelect(null);
   };
@@ -1118,11 +1148,12 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
 
         <OrbitControls
           ref={controlsRef}
+          makeDefault
           enableDamping
           dampingFactor={0.06}
           autoRotate={autoRotate}
           autoRotateSpeed={1.0}
-          minDistance={1.8}
+          minDistance={1.4}
           maxDistance={12.0}
           maxPolarAngle={Math.PI / 2 + 0.15}
         />
@@ -1130,6 +1161,7 @@ export const BatteryPack3D: React.FC<BatteryPack3DProps> = ({
         <CameraController
           viewPreset={viewPreset}
           onPresetComplete={() => setViewPreset(null)}
+          selectedCellId={selectedCell?.cell_id ?? null}
           targetPosition={
             selectedCell
               ? [
