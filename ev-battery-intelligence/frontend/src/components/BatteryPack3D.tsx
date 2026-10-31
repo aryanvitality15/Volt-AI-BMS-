@@ -280,11 +280,26 @@ function PrismaticCell({
   const [w, h, d] = dimensions;
   const meshRef = useRef<THREE.Mesh>(null!);
 
-  const tempVal = cell.temp_c ?? (cell as any).temperature ?? 26.0;
   const voltVal = cell.voltage ?? 3.28;
-  const cellSoh = cell.soc ?? packSoh ?? 87.4;
+  const tempVal = cell.temp_c ?? (cell as any).temperature ?? 26.0;
+  const cellSoh = (cell as any).soh ?? packSoh ?? 94.0;
+
+  const isFaultStatus = cell.health_status === 'CRITICAL' || cell.health_status === 'FAULT';
   const isCritical = tempVal >= 52 || Math.abs(voltVal - avgVoltage) >= 0.12;
-  const isProblematic = isHighlighted || isCritical || tempVal >= 34 || Math.abs(voltVal - avgVoltage) >= 0.045;
+  const isThermalFault = tempVal >= 42.0;
+  const isVoltageFault = Math.abs(voltVal - avgVoltage) >= 0.050;
+  const isProblemHighlight = Boolean(
+    isHighlighted &&
+    highlightReason &&
+    (highlightReason.toLowerCase().includes('fault') ||
+     highlightReason.toLowerCase().includes('defect') ||
+     highlightReason.toLowerCase().includes('overheat') ||
+     highlightReason.toLowerCase().includes('warning') ||
+     highlightReason.toLowerCase().includes('imbalance'))
+  );
+
+  // A cell is ONLY problematic if there is a verified fault or threshold breach
+  const isProblematic = isFaultStatus || isCritical || isThermalFault || isVoltageFault || isProblemHighlight;
 
   // Material color resolution depending on active visualization mode
   const cellMaterial = useMemo(() => {
