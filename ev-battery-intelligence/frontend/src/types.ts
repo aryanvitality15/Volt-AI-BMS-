@@ -10,6 +10,10 @@ export interface CellTelemetry {
   capacity_ah?: number;
   capacity?: number;
   health_status?: string;
+  predicted_soh?: number;
+  predicted_rul?: number;
+  predicted_temp?: number;
+  predicted_voltage_sag?: number;
 }
 
 export interface PackTelemetry {
@@ -34,6 +38,7 @@ export interface PackTelemetry {
   voltage_sag?: number;
   resistance_growth?: number;
   capacity_fade?: number;
+  data_source?: string;
 }
 
 export interface AIRUL {
@@ -118,10 +123,38 @@ export interface SelfLearningMetrics {
   is_retraining?: boolean;
 }
 
+export interface TelemetryValidation {
+  is_valid: boolean;
+  status: string;
+  reason?: string;
+  data_source?: string;
+  clean_acceptance_rate?: number;
+  checks?: {
+    voltage_bounds?: string;
+    thermal_envelope?: string;
+    current_bounds?: string;
+    electrochemical_consistency?: string;
+  };
+}
+
+export interface MqttStatusInfo {
+  mqtt_connected: boolean;
+  broker_host: string;
+  broker_port: number;
+  topic_base: string;
+  effective_mode: string;
+  messages_published: number;
+  messages_received: number;
+  message_rate_hz: number;
+  last_message_time: string;
+  subscriber_status: string;
+}
+
 export interface BatteryState {
   timestamp: string;
   pack: PackTelemetry;
   cells: CellTelemetry[];
+  validation?: TelemetryValidation;
   ai: AIEngineState;
   self_learning?: SelfLearningMetrics;
   risk: RiskState;
@@ -133,6 +166,8 @@ export interface BatteryState {
     factors: XAIFactor[];
   };
   recommendation: RecommendationState;
+  scenario?: string;
+  system_mode?: string;
 }
 
 export interface AlertItem {

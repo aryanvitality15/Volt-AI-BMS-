@@ -93,7 +93,8 @@ class FeaturePipeline:
         # Degradation statistics
         avg_res = float(np.mean(resistances))
         res_growth = calculate_resistance_growth(avg_res, settings.NOMINAL_CELL_RESISTANCE_MOHM)
-        cap_fade = calculate_capacity_fade(float(cells[0]["capacity"]), settings.RATED_CAPACITY_AH)
+        cap_val = float(cells[0].get("capacity", cells[0].get("capacity_ah", settings.RATED_CAPACITY_AH)))
+        cap_fade = calculate_capacity_fade(cap_val, settings.RATED_CAPACITY_AH)
         c_rate = calculate_c_rate(pack_summary.get("pack_current", 0.0), settings.RATED_CAPACITY_AH)
         
         return {

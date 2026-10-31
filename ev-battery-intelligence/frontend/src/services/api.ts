@@ -663,6 +663,29 @@ class ApiService {
       return { status: 'mock_published', payload };
     }
   }
+
+  async getMqttStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/api/mqtt/status`, {
+        headers: this.getHeaders()
+      });
+      if (!res.ok) throw new Error('API_UNAVAILABLE');
+      return await safeJsonParse(res);
+    } catch {
+      return {
+        mqtt_connected: false,
+        broker_host: 'broker.hivemq.com',
+        broker_port: 1883,
+        topic_base: 'ev/battery',
+        effective_mode: 'DEMO MODE',
+        messages_published: 0,
+        messages_received: 0,
+        message_rate_hz: 0,
+        last_message_time: 'N/A',
+        subscriber_status: 'OFFLINE_FALLBACK'
+      };
+    }
+  }
 }
 
 export const api = new ApiService();

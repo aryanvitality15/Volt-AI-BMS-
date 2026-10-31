@@ -255,8 +255,8 @@ export default function App() {
     let isMounted = true;
 
     const syncBatteryData = async () => {
-      // In simulator mode, do not stomp over the live 1Hz electrochemical physics simulation!
-      if (hardwareSourceMode === 'SIMULATOR') return;
+      // Only skip scoped sync if in offline simulator mode without backend
+      if (hardwareSourceMode === 'SIMULATOR' && !isLiveBackend) return;
       try {
         const [packData, cellsData] = await Promise.all([
           api.getScopedPack(activeBatteryId),
@@ -707,9 +707,9 @@ export default function App() {
     });
   };
 
-  // Autonomous 1Hz High-Fidelity Physics & AI Simulation Loop (Runs continuously when in SIMULATOR mode)
+  // Autonomous 1Hz High-Fidelity Physics & AI Simulation Loop (Only active when in offline SIMULATOR mode without live backend)
   useEffect(() => {
-    if (hardwareSourceMode === 'SIMULATOR') {
+    if (hardwareSourceMode === 'SIMULATOR' && !isLiveBackend) {
       const pollInterval = setInterval(() => {
         // Step the grounded electrochemical simulation engine
         const nextState = clientSimulator.step(1.0);
