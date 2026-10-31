@@ -215,6 +215,23 @@ def _run_migrations(conn: sqlite3.Connection):
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_resets_token ON password_resets(reset_token);")
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS admin_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key_hash TEXT UNIQUE NOT NULL,
+        key_prefix TEXT NOT NULL,
+        name TEXT DEFAULT 'Master Admin Key',
+        created_at TEXT NOT NULL,
+        created_by TEXT DEFAULT 'system',
+        expires_at TEXT,
+        role TEXT DEFAULT 'Fleet Admin',
+        is_active INTEGER DEFAULT 1,
+        usage_count INTEGER DEFAULT 0,
+        last_used_at TEXT
+    );
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_admin_keys_hash ON admin_keys(key_hash);")
+
     # --- 3. Dynamic Column Migration (Safely Add to Existing Tables) ---
     def _add_column(table: str, column_name: str, column_type: str):
         cursor.execute(f"PRAGMA table_info({table});")
@@ -291,6 +308,25 @@ def _run_migrations(conn: sqlite3.Connection):
     else:
         if not ev_row[1]:
             cursor.execute("UPDATE battery_metadata SET owner_user_id = ?, battery_name = 'LFP 8S Prototype Alpha' WHERE battery_id = ?", (operator_uid, settings.BATTERY_ID))
+
+    # Seed default Fleet Admin
+    cursor.execute("SELECT user_id FROM users WHERE email = 'admin@voltbms.io'")
+    admin_row = cursor.fetchone()
+    if not admin_row:
+        cursor.execute("""
+        INSERT INTO users (user_id, name, email, password_hash, role, created_at, status)
+        VALUES ('usr_admin_master', 'Fleet Administrator', 'admin@voltbms.io', ?, 'Fleet Admin', ?, 'ACTIVE')
+        """, (hash_password("VoltAdmin2026!"), datetime.now().isoformat()))
+
+    # Seed default Admin Master Key
+    import hashlib
+    default_key_hash = hashlib.sha256(settings.ADMIN_ACCESS_KEY.encode()).hexdigest()
+    cursor.execute("SELECT id FROM admin_keys WHERE key_hash = ?", (default_key_hash,))
+    if not cursor.fetchone():
+        cursor.execute("""
+        INSERT INTO admin_keys (key_hash, key_prefix, name, created_at, created_by, role, is_active)
+        VALUES (?, ?, 'Primary Master Admin Key', ?, 'system', 'Fleet Admin', 1)
+        """, (default_key_hash, settings.ADMIN_ACCESS_KEY[:10], datetime.now().isoformat()))
 
     conn.commit()
     logger.info("SQLite Database migrations and verification complete.")
@@ -537,6 +573,118 @@ def mark_password_reset_used(reset_token: str) -> bool:
         return cursor.rowcount > 0
     finally:
         conn.close()
+
+# ==========================================
+# ADMIN ACCESS KEY MANAGEMENT
+# ==========================================
+
+def verify_admin_key(raw_key: str) -> Optional[Dict[str, Any]]:
+    """Validates an Admin Key against the configured secret and admin_keys registry."""
+    if not raw_key:
+        return None
+    clean_key = raw_key.strip()
+
+    # Check master environment key
+    if clean_key == settings.ADMIN_ACCESS_KEY:
+        return {
+            "key_prefix": clean_key[:10],
+            "name": "Master Environment Admin Key",
+            "role": "Fleet Admin",
+            "is_active": 1
+        }
+
+    import hashlib
+    key_hash = hashlib.sha256(clean_key.encode()).hexdigest()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM admin_keys WHERE key_hash = ? AND is_active = 1", (key_hash,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        if d.get("expires_at"):
+            if datetime.now() > datetime.fromisoformat(d["expires_at"]):
+                return None
+        return d
+    finally:
+        conn.close()
+
+def generate_new_admin_key(name: str = "Admin Key", created_by: str = "system", expires_days: Optional[int] = None) -> str:
+    """Generates a cryptographically strong, formatted Admin Key and records its hash in DB."""
+    import secrets
+    import hashlib
+    # Format: VOLT-ADM-XXXX-XXXX-XXXX-XXXX (24 alphanumeric random chars)
+    chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    blocks = ["".join(secrets.choice(chars) for _ in range(4)) for _ in range(4)]
+    key = f"VOLT-ADM-{'-'.join(blocks)}"
+
+    key_hash = hashlib.sha256(key.encode()).hexdigest()
+    expires_at = (datetime.now() + timedelta(days=expires_days)).isoformat() if expires_days else None
+
+    conn = get_db_connection()
+    try:
+        conn.execute("""
+        INSERT INTO admin_keys (key_hash, key_prefix, name, created_at, created_by, expires_at, role, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, 'Fleet Admin', 1)
+        """, (key_hash, key[:10], name, datetime.now().isoformat(), created_by, expires_at))
+        conn.commit()
+        return key
+    finally:
+        conn.close()
+
+def login_with_admin_key(raw_key: str, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Authenticates an admin using a verified Admin Key and returns session credentials."""
+    key_info = verify_admin_key(raw_key)
+    if not key_info:
+        return None
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Ensure the master Fleet Admin user exists
+        cursor.execute("SELECT * FROM users WHERE email = 'admin@voltbms.io'")
+        admin_row = cursor.fetchone()
+        if not admin_row:
+            admin_uid = "usr_admin_master"
+            now_iso = datetime.now().isoformat()
+            cursor.execute("""
+            INSERT INTO users (user_id, name, email, password_hash, role, created_at, status)
+            VALUES (?, 'Fleet Administrator', 'admin@voltbms.io', ?, 'Fleet Admin', ?, 'ACTIVE')
+            """, (admin_uid, hash_password("VoltAdmin2026!"), now_iso))
+            conn.commit()
+            admin_user = {
+                "user_id": admin_uid,
+                "name": "Fleet Administrator",
+                "email": "admin@voltbms.io",
+                "role": "Fleet Admin",
+                "status": "ACTIVE"
+            }
+        else:
+            admin_user = dict(admin_row)
+
+        # Update admin key usage stats if stored in DB
+        import hashlib
+        key_hash = hashlib.sha256(raw_key.strip().encode()).hexdigest()
+        cursor.execute("""
+        UPDATE admin_keys SET usage_count = usage_count + 1, last_used_at = ? WHERE key_hash = ?
+        """, (datetime.now().isoformat(), key_hash))
+        conn.commit()
+    finally:
+        conn.close()
+
+    # Create persistent session
+    token = create_session(admin_user["user_id"], duration_days=30, user_agent=user_agent, ip_address=ip_address)
+    return {
+        "session_token": token,
+        "user": {
+            "user_id": admin_user["user_id"],
+            "name": admin_user["name"],
+            "email": admin_user["email"],
+            "role": admin_user["role"]
+        },
+        "key_info": key_info
+    }
 
 # ==========================================
 # BATTERY OWNERSHIP & SCOPED ACCESS

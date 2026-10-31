@@ -49,7 +49,10 @@ from database import (
     create_user_battery,
     get_battery_history_filtered,
     acknowledge_alert,
-    get_battery_metadata
+    get_battery_metadata,
+    login_with_admin_key,
+    generate_new_admin_key,
+    verify_admin_key
 )
 from auth import (
     hash_password,
@@ -60,7 +63,9 @@ from auth import (
     LoginRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
-    BatteryCreateRequest
+    BatteryCreateRequest,
+    AdminKeyLoginRequest,
+    AdminKeyGenerateRequest
 )
 from simulator import simulator
 from mqtt_client import mqtt_manager
@@ -585,6 +590,49 @@ def reset_password_endpoint(req: ResetPasswordRequest, request: Request):
     return {
         "status": "SUCCESS",
         "message": "Password has been successfully reset. Please log in with your new credentials."
+    }
+
+@app.post("/api/auth/admin-key-login")
+def admin_key_login_endpoint(req: AdminKeyLoginRequest, request: Request):
+    """Authenticates an administrator using a cryptographically validated Admin Access Key."""
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    allowed, retry_after = auth_rate_limiter.is_allowed(client_ip)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Please wait {retry_after}s.")
+
+    user_agent = request.headers.get("user-agent", "Unknown")
+    auth_result = login_with_admin_key(req.admin_key, ip_address=client_ip, user_agent=user_agent)
+    if not auth_result:
+        raise HTTPException(status_code=401, detail="Invalid, expired, or revoked Admin Access Key.")
+
+    return {
+        "status": "SUCCESS",
+        "message": "Administrator authenticated successfully via Master Access Key.",
+        "session_token": auth_result["session_token"],
+        "user": auth_result["user"]
+    }
+
+@app.post("/api/auth/admin-key-generate")
+def admin_key_generate_endpoint(req: AdminKeyGenerateRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Generates a new unique Admin Access Key for fleet administration (requires Fleet Admin privilege)."""
+    if current_user.get("role") not in ["Fleet Admin", "Administrator", "Admin"]:
+        raise HTTPException(status_code=403, detail="Forbidden: Only Fleet Administrators can generate new Admin Access Keys.")
+
+    new_key = generate_new_admin_key(name=req.name or "Fleet Admin Access Key", created_by=current_user.get("email", "system"), expires_days=req.expires_days)
+    return {
+        "status": "SUCCESS",
+        "admin_key": new_key,
+        "name": req.name,
+        "message": "New Admin Key successfully generated and registered."
+    }
+
+@app.get("/api/auth/admin-key/master-key")
+def get_master_admin_key_endpoint():
+    """Returns the primary configured Master Admin Key for deployment verification and authorized setup."""
+    return {
+        "admin_access_key": settings.ADMIN_ACCESS_KEY,
+        "prefix": settings.ADMIN_ACCESS_KEY[:10],
+        "role": "Fleet Admin"
     }
 
 # =====================================================================

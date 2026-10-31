@@ -159,6 +159,22 @@ class ApiService {
     return data;
   }
 
+  async loginWithAdminKey(adminKey: string, rememberMe: boolean = true) {
+    const res = await fetch(`${API_BASE}/api/auth/admin-key-login`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ admin_key: adminKey.trim() })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.detail || data.message || 'Invalid or revoked Admin Key');
+    }
+    if (data.session_token) {
+      this.setToken(data.session_token, rememberMe);
+    }
+    return data;
+  }
+
   async getMe(): Promise<{ authenticated: boolean; user: OperatorProfile }> {
     const res = await fetch(`${API_BASE}/api/auth/me`, {
       method: 'GET',

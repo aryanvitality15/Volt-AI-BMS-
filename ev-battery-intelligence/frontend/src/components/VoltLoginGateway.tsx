@@ -39,8 +39,8 @@ interface VoltLoginGatewayProps {
 }
 
 export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSuccess }) => {
-  // Modes: 'signin' | 'signup' | 'forgot' | 'reset'
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'reset'>('signin');
+  // Modes: 'signin' | 'signup' | 'forgot' | 'reset' | 'admin-key'
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'reset' | 'admin-key'>('signin');
 
   // Form Fields
   const [name, setName] = useState<string>('');
@@ -50,6 +50,7 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
   const [role, setRole] = useState<OperatorRole>('BMS Engineer');
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [resetToken, setResetToken] = useState<string>('');
+  const [adminKey, setAdminKey] = useState<string>('');
 
   // UX Feedback & State
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -276,6 +277,34 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
     }
   };
 
+  // Handle Admin Key Authentication (Direct Fleet Admin privilege grant)
+  const handleAdminKeyLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const keyToUse = adminKey.trim();
+    if (!keyToUse) {
+      triggerError('Please enter a valid Admin Access Key.');
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage('Verifying Admin Key SHA-256 hash & elevating privileges...');
+
+    try {
+      const res = await api.loginWithAdminKey(keyToUse, rememberMe);
+      setIsLoading(false);
+      setSuccessMessage(`Admin Key Verified: ${res.user.role} elevated access granted.`);
+      setTimeout(() => {
+        finalizeSession(res.user, 'token');
+      }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      triggerError(err.message || 'Invalid or revoked Admin Access Key.');
+    }
+  };
+
   // 1-Click Instant Demo Login (Real Backend Authentication)
   const handleInstantDemoLogin = async () => {
     setErrorMessage(null);
@@ -355,8 +384,8 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
             </p>
           </div>
 
-          {/* Tab Navigation (Sign In / Register / Recovery) */}
-          <div className="grid grid-cols-3 gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.08] mb-5 text-xs font-mono">
+          {/* Tab Navigation (Sign In / Admin Key / Register / Recovery) */}
+          <div className="grid grid-cols-4 gap-1 p-1 bg-white/[0.04] rounded-xl border border-white/[0.08] mb-5 text-[11px] font-mono">
             <button
               type="button"
               onClick={() => { setMode('signin'); setErrorMessage(null); setSuccessMessage(null); }}
@@ -367,6 +396,18 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
               }`}
             >
               Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMode('admin-key'); setErrorMessage(null); setSuccessMessage(null); }}
+              className={`py-1.5 rounded-lg transition font-medium flex items-center justify-center gap-1 ${
+                mode === 'admin-key'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <KeyRound className="w-3 h-3 text-amber-400" />
+              <span>Admin Key</span>
             </button>
             <button
               type="button"
@@ -510,6 +551,90 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
                 ) : (
                   <>
                     <span>AUTHENTICATE OPERATOR</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* MODE: ADMIN KEY LOGIN */}
+          {mode === 'admin-key' && (
+            <form onSubmit={handleAdminKeyLogin} className="flex flex-col gap-3.5">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300/90 text-xs font-mono">
+                <div className="flex items-center gap-1.5 font-bold text-amber-400 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
+                  <span>FLEET ADMINISTRATOR DIRECT ACCESS</span>
+                </div>
+                <p className="text-[10px] text-slate-300 leading-relaxed">
+                  Enter your cryptographically registered 256-bit Admin Access Key. Authenticates with full Fleet Admin privileges without needing password entry.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-mono font-medium text-slate-300" htmlFor="admin-access-key">
+                    ADMIN ACCESS KEY
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAdminKey('VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9')}
+                    className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 underline"
+                  >
+                    Auto-Fill Master Key
+                  </button>
+                </div>
+                <div className="relative">
+                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400 pointer-events-none" />
+                  <input
+                    id="admin-access-key"
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={adminKey}
+                    onChange={(e) => setAdminKey(e.target.value.trim().toUpperCase())}
+                    placeholder="VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-amber-500/30 text-amber-200 text-xs placeholder-slate-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/40 transition font-mono tracking-wider font-semibold"
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1 text-[10px] font-mono text-slate-500">
+                  <span>Format: VOLT-ADMIN-KEY-... or VOLT-ADM-...</span>
+                  <button
+                    type="button"
+                    onClick={() => setAdminKey('VOLT-ADM-YFDG-XS5J-YQQY-GWAU')}
+                    className="text-amber-400/80 hover:text-amber-300 underline"
+                  >
+                    Use DB Key
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded bg-white/[0.05] border-white/20 text-cyan-500 focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span className="text-[11px] font-mono text-slate-400">Persist Admin Session (30d)</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-cyan-500 hover:from-amber-400 hover:to-cyan-400 text-slate-950 font-orbitron font-bold text-xs tracking-wider transition shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>{loadingMessage || 'Verifying Admin Key...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4 text-slate-950" />
+                    <span>AUTHENTICATE AS FLEET ADMIN</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -813,8 +938,19 @@ export const VoltLoginGateway: React.FC<VoltLoginGatewayProps> = ({ onLoginSucce
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
               <span>Instant Evaluator Demo Login (Aryan / BMS Engineer)</span>
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('admin-key');
+                setAdminKey('VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9');
+              }}
+              className="w-full mt-2 py-1.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-semibold transition flex items-center justify-center gap-2"
+            >
+              <KeyRound className="w-3 h-3 text-amber-400" />
+              <span>Admin Key Access: VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9</span>
+            </button>
             <p className="text-[10px] text-slate-500 text-center mt-2 font-mono">
-              Authenticates against verified database user <span className="text-slate-400">operator@voltbms.io</span>
+              Authenticates against verified database user <span className="text-slate-400">admin@voltbms.io</span> or <span className="text-slate-400">operator@voltbms.io</span>
             </p>
           </div>
         </div>

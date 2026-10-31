@@ -48,6 +48,9 @@ class Settings:
     HIVEMQ_USERNAME: str = os.getenv("HIVEMQ_USERNAME", "")
     HIVEMQ_PASSWORD: str = os.getenv("HIVEMQ_PASSWORD", "")
     MQTT_TOPIC_BASE: str = os.getenv("MQTT_TOPIC_BASE", "ev/battery")
+
+    # Admin Key & Master Access
+    ADMIN_ACCESS_KEY: str = os.getenv("ADMIN_ACCESS_KEY", "VOLT-ADMIN-KEY-9X4K-77M2-Q8P1-Z3F9")
     
     # Battery Pack Specifications (LFP Architecture based on PDF)
     BATTERY_ID: str = os.getenv("BATTERY_ID", "EV-001")

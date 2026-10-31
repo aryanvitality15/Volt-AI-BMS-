@@ -129,3 +129,10 @@ class BatteryCreateRequest(BaseModel):
     num_cells: Optional[int] = 8
     specs: Optional[str] = None
     config: Optional[str] = None
+
+class AdminKeyLoginRequest(BaseModel):
+    admin_key: str = Field(..., min_length=8, max_length=128)
+
+class AdminKeyGenerateRequest(BaseModel):
+    name: Optional[str] = "Fleet Admin Access Key"
+    expires_days: Optional[int] = 365
